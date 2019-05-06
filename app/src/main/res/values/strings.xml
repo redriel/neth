@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Neth2</string>
+    <string name="connect">Connect to Ethereum</string>
+    <string name="clientName">Waiting for connection</string>
+    <string name="createWallet">Create a Wallet</string>
+    <string name="getAddress">GET</string>
+    <string name="CreateTXT">Create TXT</string>
+</resources>
