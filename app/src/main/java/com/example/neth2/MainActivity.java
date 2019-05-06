@@ -4,6 +4,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import java.io.File;
+import java.math.BigDecimal;
 import java.security.*;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -11,13 +12,17 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.core.methods.response.Web3ClientVersion;
 import org.web3j.protocol.http.HttpService;
+import org.web3j.tx.Transfer;
+import org.web3j.utils.Convert;
 
 public class MainActivity extends AppCompatActivity {
 
     private Web3j web3;
     private TextView clientName;
+    private TextView address;
     private final String password = "medium";
     private String walletPath;
     private File walletDir;
@@ -28,6 +33,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         clientName = (TextView) findViewById(R.id.clientName);
+        address = (TextView) findViewById(R.id.address);
         setupBouncyCastle();
         walletPath = getFilesDir().getAbsolutePath();
         walletDir = new File(walletPath);
@@ -64,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             Credentials credentials = WalletUtils.loadCredentials(password, walletDir.getAbsolutePath() + "/" + myPath);
             toastAsync("Your address is " + credentials.getAddress());
+            address.setText(credentials.getAddress());
         }
         catch (Exception e){
             toastAsync("ERROR:" + e.getMessage());
@@ -74,6 +81,17 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             Toast.makeText(this, message, Toast.LENGTH_LONG).show();
         });
+    }
+
+    public void sendTransaction(View v){
+        try{
+            Credentials credentials = WalletUtils.loadCredentials(password, walletDir.getAbsolutePath() + "/" + myPath);
+            TransactionReceipt receipt = Transfer.sendFunds(web3,credentials,"0x31B98D14007bDEe637298086988A0bBd31184523",new BigDecimal(1), Convert.Unit.ETHER).sendAsync().get();
+            toastAsync("Transaction complete: " +receipt.getTransactionHash());
+        }
+        catch (Exception e){
+            toastAsync(e.getMessage());
+        }
     }
 
     // Setup Security provider by serso

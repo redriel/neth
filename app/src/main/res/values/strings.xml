@@ -5,4 +5,6 @@
     <string name="createWallet">Create a Wallet</string>
     <string name="getAddress">GET</string>
     <string name="CreateTXT">Create TXT</string>
+    <string name="sendTransaction">Send Transaction</string>
+    <string name="Address">Your address will be displaced here</string>
 </resources>
