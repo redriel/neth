@@ -1,11 +1,15 @@
 package com.example.neth2;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import java.io.File;
 import java.math.BigDecimal;
 import java.security.*;
+
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -20,33 +24,50 @@ import org.web3j.utils.Convert;
 
 public class MainActivity extends AppCompatActivity {
 
+
+    public static final String WALLET_NAME_KEY = "WALLET_NAME_KEY";
+    public static final String WALLET_DIRECTORY_KEY = "WALLET_DIRECTORY_KEY";
     private Web3j web3;
-    private TextView clientName;
-    private TextView address;
     private final String password = "medium";
     private String walletPath;
-    private File walletDir;
-    private String myPath;
+    private File walletDirectory;
+    private String walletName;
+    private Button connectButton;
+    private Button createWalletButton;
+    private TextView transactionHashTv;
+    private TextView addressTv;
+    private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        clientName = (TextView) findViewById(R.id.clientName);
-        address = (TextView) findViewById(R.id.address);
+        connectButton = (Button) findViewById(R.id.btnConnect);
+        createWalletButton = (Button) findViewById(R.id.btnCreateWallet);
+        transactionHashTv = (TextView) findViewById(R.id.tvTransactionHash);
+        addressTv = (TextView) findViewById(R.id.tvAddress);
         setupBouncyCastle();
         walletPath = getFilesDir().getAbsolutePath();
-        walletDir = new File(walletPath);
+        walletDirectory = new File(walletPath);
+        sharedPreferences = this.getSharedPreferences("com.example.Neth2", Context.MODE_PRIVATE);
+        String storedPath = sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                "/" + sharedPreferences.getString(WALLET_NAME_KEY, "");
+
+        if(storedPath.contains("UTC")){
+            createWalletButton.setText("Wallet created");
+            //createWalletButton.setEnabled(false);
+            createWalletButton.setBackgroundColor(0xFF7CCC26);
+        }
     }
 
     public void connectToEthNetwork(View view) {
-        toastAsync("Connecting to Ethereum network");
         web3 = Web3j.build(new HttpService("https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e"));
         try {
             Web3ClientVersion clientVersion = web3.web3ClientVersion().sendAsync().get();
             if(!clientVersion.hasError()){
                 toastAsync("Connected!");
-                clientName.setText("Client Name:" + clientVersion.getWeb3ClientVersion());
+                connectButton.setText("Connected to Ethereum");
+                connectButton.setBackgroundColor(0xFF7CCC26);
             }
             else {
                 toastAsync(clientVersion.getError().getMessage());
@@ -58,8 +79,14 @@ public class MainActivity extends AppCompatActivity {
 
     public void createWallet(View view){
         try{
-            myPath = WalletUtils.generateFullNewWalletFile(password, walletDir);
-            toastAsync("Wallet generated as" + walletDir);
+            walletName = WalletUtils.generateFullNewWalletFile(password, walletDirectory);
+            sharedPreferences.edit().putString(WALLET_NAME_KEY, walletName).apply();
+            sharedPreferences.edit().putString(WALLET_DIRECTORY_KEY, walletDirectory.getAbsolutePath()).apply();
+            
+            createWalletButton.setText("Wallet created");
+            createWalletButton.setBackgroundColor(0xFF7CCC26);
+            //createWalletButton.setEnabled(false);
+            toastAsync("Wallet created!");
         }
         catch (Exception e){
             toastAsync("ERROR:" + e.getMessage());
@@ -67,10 +94,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void getAddress(View view){
-        try {
-            Credentials credentials = WalletUtils.loadCredentials(password, walletDir.getAbsolutePath() + "/" + myPath);
-            toastAsync("Your address is " + credentials.getAddress());
-            address.setText(credentials.getAddress());
+        try{
+            Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                    "/" + sharedPreferences.getString(WALLET_NAME_KEY, ""));
+            addressTv.setText(credentials.getAddress());
         }
         catch (Exception e){
             toastAsync("ERROR:" + e.getMessage());
@@ -85,9 +112,11 @@ public class MainActivity extends AppCompatActivity {
 
     public void sendTransaction(View v){
         try{
-            Credentials credentials = WalletUtils.loadCredentials(password, walletDir.getAbsolutePath() + "/" + myPath);
-            TransactionReceipt receipt = Transfer.sendFunds(web3,credentials,"0x31B98D14007bDEe637298086988A0bBd31184523",new BigDecimal(1), Convert.Unit.ETHER).sendAsync().get();
-            toastAsync("Transaction complete: " +receipt.getTransactionHash());
+            Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                    "/" + sharedPreferences.getString(WALLET_NAME_KEY, ""));
+            TransactionReceipt receipt = Transfer.sendFunds(web3,credentials,"0x31B98D14007bDEe637298086988A0bBd31184523",new BigDecimal("0.0001"), Convert.Unit.ETHER).sendAsync().get();
+            toastAsync("Transaction complete: " + receipt.getTransactionHash());
+            transactionHashTv.setText(receipt.getTransactionHash());
         }
         catch (Exception e){
             toastAsync(e.getMessage());

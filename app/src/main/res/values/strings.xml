@@ -2,9 +2,10 @@
     <string name="app_name">Neth2</string>
     <string name="connect">Connect to Ethereum</string>
     <string name="clientName">Waiting for connection</string>
-    <string name="createWallet">Create a Wallet</string>
-    <string name="getAddress">GET</string>
+    <string name="createWallet">Create Wallet</string>
+    <string name="getAddress">Get Address</string>
     <string name="CreateTXT">Create TXT</string>
     <string name="sendTransaction">Send Transaction</string>
-    <string name="Address">Your address will be displaced here</string>
+    <string name="TransactionHash">Transaction Hash</string>
+    <string name="Address">Address</string>
 </resources>
