@@ -8,4 +8,7 @@
     <string name="sendTransaction">Send Transaction</string>
     <string name="TransactionHash">Transaction Hash</string>
     <string name="Address">Address</string>
+    <string name="setPassword">Set password</string>
+    <string name="set_password">Set Password</string>
+    <string name="password">Password</string>
 </resources>
