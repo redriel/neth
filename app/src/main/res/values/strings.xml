@@ -3,12 +3,17 @@
     <string name="connect">Connect to Ethereum</string>
     <string name="clientName">Waiting for connection</string>
     <string name="createWallet">Create Wallet</string>
-    <string name="getAddress">Get Address</string>
+    <string name="getAddress">Address</string>
     <string name="CreateTXT">Create TXT</string>
     <string name="sendTransaction">Send Transaction</string>
     <string name="TransactionHash">Transaction Hash</string>
-    <string name="Address">Address</string>
     <string name="setPassword">Set password</string>
     <string name="set_password">Set Password</string>
     <string name="password">Password</string>
+    <string name="getBalance">Your Eth Balance</string>
+    <string name="delete">Delete</string>
+    <string name="transaction">Transaction</string>
+    <string name="ethBalance">Eth Balance</string>
+    <string name="transactionHistory">Transaction History</string>
+    <string name="transactions">Transactions</string>
 </resources>

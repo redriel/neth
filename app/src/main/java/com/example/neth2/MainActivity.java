@@ -4,15 +4,21 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.security.Provider;
 import java.security.Security;
+import java.util.ArrayList;
 
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -21,6 +27,8 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.response.EthGetBalance;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.core.methods.response.Web3ClientVersion;
 import org.web3j.protocol.http.HttpService;
@@ -46,9 +54,12 @@ public class MainActivity extends AppCompatActivity {
     private String walletName;
     private Button connectButton;
     private Button createWalletButton;
-    private TextView transactionHashTv;
-    private TextView addressTv;
+    private Button transactionHistoryButton;
     private SharedPreferences sharedPreferences;
+
+    ListView listView;
+    ArrayList<String> walletList;
+    WalletAdapter listAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,23 +67,24 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         setupBouncyCastle();
+        walletList = new ArrayList<>();
 
+        View listHeader = View.inflate(this, R.layout.activity_main_header, null);
+        listView = (ListView) findViewById(R.id.listView);
+        listView.addHeaderView(listHeader);
         connectButton = (Button) findViewById(R.id.btnConnect);
         createWalletButton = (Button) findViewById(R.id.btnCreateWallet);
-        transactionHashTv = (TextView) findViewById(R.id.tvTransactionHash);
-        addressTv = (TextView) findViewById(R.id.tvAddress);
+        transactionHistoryButton = (Button) findViewById(R.id.btnTransactionHistory);
+
+        listAdapter = new WalletAdapter(MainActivity.this, R.id.walletAlias);
+        listView.setAdapter(listAdapter);
 
         walletPath = getFilesDir().getAbsolutePath();
         walletDirectory = new File(walletPath);
         sharedPreferences = this.getSharedPreferences("com.example.Neth2", Context.MODE_PRIVATE);
         String storedPath = sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
                 "/" + sharedPreferences.getString(WALLET_NAME_KEY, "");
-
-        if(storedPath.contains("UTC")){
-            createWalletButton.setText("Wallet created");
-            //createWalletButton.setEnabled(false);
-            createWalletButton.setBackgroundColor(0xFF7CCC26);
-        }
+        refreshList();
     }
 
     /**
@@ -105,10 +117,8 @@ public class MainActivity extends AppCompatActivity {
             walletName = WalletUtils.generateFullNewWalletFile(password, walletDirectory);
             sharedPreferences.edit().putString(WALLET_NAME_KEY, walletName).apply();
             sharedPreferences.edit().putString(WALLET_DIRECTORY_KEY, walletDirectory.getAbsolutePath()).apply();
-            
-            createWalletButton.setText("Wallet created");
-            createWalletButton.setBackgroundColor(0xFF7CCC26);
-            createWalletButton.setEnabled(false);
+            refreshList();
+
             toastAsync("Wallet created!");
         }
         catch (Exception e){
@@ -124,7 +134,7 @@ public class MainActivity extends AppCompatActivity {
         try{
             Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
                     "/" + sharedPreferences.getString(WALLET_NAME_KEY, ""));
-            addressTv.setText(credentials.getAddress());
+            //TODO show address
         }
         catch (Exception e){
             toastAsync("ERROR:" + e.getMessage());
@@ -143,7 +153,9 @@ public class MainActivity extends AppCompatActivity {
             TransactionReceipt receipt = Transfer.sendFunds(web3,credentials,"0x31B98D14007bDEe637298086988A0bBd31184523",
                     new BigDecimal("0.0001"), Convert.Unit.ETHER).sendAsync().get();
             toastAsync("Transaction complete: " + receipt.getTransactionHash());
-            transactionHashTv.setText(receipt.getTransactionHash());
+            //transactionHashTv.setText(receipt.getTransactionHash());
+            //TODO: add transaction receipt in TRANSACTION page
+            getBalance(credentials.getAddress());
             }
             else {
                 toastAsync("Wrong password");
@@ -152,6 +164,23 @@ public class MainActivity extends AppCompatActivity {
         catch (Exception e){
             toastAsync(e.getMessage());
         }
+    }
+
+    public void getBalance(String address){
+        // send asynchronous requests to get balance
+        EthGetBalance ethGetBalance = null;
+        try {
+            ethGetBalance = web3
+                    .ethGetBalance(address, DefaultBlockParameterName.LATEST)
+                    .sendAsync()
+                    .get();
+        } catch (Exception e) {
+            toastAsync(e.getMessage());
+        }
+
+        BigDecimal etherValue = Convert.fromWei(ethGetBalance.getBalance().toString(), Convert.Unit.ETHER);
+        //balanceTv.setText(etherValue.toString());
+        //TODO: show prompt with eth balance
     }
 
     /**
@@ -202,6 +231,99 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> {
             Toast.makeText(this, message, Toast.LENGTH_LONG).show();
         });
+    }
+
+    public void refreshList(){
+        File folder = new File(sharedPreferences.getString(WALLET_DIRECTORY_KEY, ""));
+        for(File f : folder.listFiles())
+        {
+            if(!walletList.contains(f.getName()))
+            walletList.add(f.getName());
+        }
+        if(listAdapter != null)
+            listAdapter.notifyDataSetChanged();
+    }
+
+    public void deleteWallet(final String walletName) {
+        AlertDialog alertDialog = new AlertDialog.Builder(this)
+                .setTitle("Delete Wallet")
+                .setMessage("Do you want to delete this wallet from the storage?")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    File file = new File(sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                            "/" + walletName);
+                    if (file.exists()) {
+                        file.delete();
+                    } else {
+                        System.err.println(
+                                "I cannot find '" + file + "' ('" + file.getAbsolutePath() + "')");
+                    }
+                    walletList.remove(walletName);
+                    listAdapter.notifyDataSetChanged();
+                })
+                .setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                })
+                .create();
+        alertDialog.show();
+    }
+
+    public class WalletAdapter extends ArrayAdapter<String> {
+
+        public WalletAdapter(Context context, int textView) {
+            super(context, textView);
+        }
+
+        @Override
+        public int getCount() {
+            return walletList.size();
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            View itemView = LayoutInflater.from(parent.getContext()).
+                    inflate(R.layout.list_items, parent, false);
+
+            final TextView walletTV = (TextView) itemView.findViewById(R.id.walletAlias);
+            walletTV.setText(walletList.get(position));
+            final Button address = (Button) itemView.findViewById(R.id.addressButton);
+            address.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    //TODO: show wallet address
+                }
+            });
+            final Button transaction = (Button) itemView.findViewById(R.id.transactionButton);
+            transaction.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    //TODO: prompt transaction request
+                }
+            });
+            final Button ethBalance =  (Button) itemView.findViewById(R.id.ethBalanceButton);
+            ethBalance.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    //TODO: show wallet balance
+                }
+            });
+            final Button deleteButton = (Button) itemView.findViewById(R.id.deleteButton);
+            deleteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    deleteWallet(walletTV.getText().toString());
+                }
+            });
+
+            return itemView;
+        }
+
+        @Override
+        public String getItem(int position) {
+            return walletList.get(position);
+        }
+
     }
 
 }

@@ -6,99 +6,15 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/tvAddress"
-        android:layout_width="360dp"
-        android:layout_height="30dp"
-        android:layout_marginTop="16dp"
-        android:text="@string/Address"
-        android:textIsSelectable="true"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnCreateWallet" />
+    <ListView xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:tools="http://schemas.android.com/tools"
+        android:id="@+id/listView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true"
+        android:padding="5dp"
+        tools:context="com.sample.foo.simplekeystoreapp.MainActivity">
 
-    <Button
-        android:id="@+id/btnConnect"
-        android:layout_width="380dp"
-        android:layout_height="65dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="8dp"
-        android:onClick="connectToEthNetwork"
-        android:text="@string/connect"
-        android:textSize="25sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <Button
-        android:id="@+id/btnCreateWallet"
-        android:layout_width="180dp"
-        android:layout_height="100dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:onClick="createWallet"
-        android:text="@string/createWallet"
-        android:textSize="20sp"
-        app:layout_constraintEnd_toStartOf="@+id/btnSendTransaction"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnConnect" />
-
-    <Button
-        android:id="@+id/btnSendTransaction"
-        android:layout_width="180dp"
-        android:layout_height="100dp"
-        android:layout_marginStart="10dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginEnd="8dp"
-        android:onClick="sendTransaction"
-        android:text="@string/sendTransaction"
-        android:textSize="20sp"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/btnCreateWallet"
-        app:layout_constraintTop_toBottomOf="@+id/btnConnect" />
-
-    <TextView
-        android:id="@+id/tvTransactionHash"
-        android:layout_width="360dp"
-        android:layout_height="30dp"
-        android:layout_marginTop="8dp"
-        android:text="@string/TransactionHash"
-        android:textIsSelectable="true"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvAddress" />
-
-    <Button
-        android:id="@+id/btnGetAddress"
-        android:layout_width="180dp"
-        android:layout_height="50dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="16dp"
-        android:onClick="getAddress"
-        android:text="@string/getAddress"
-        app:layout_constraintEnd_toStartOf="@+id/btnPassword"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvTransactionHash" />
-
-    <Button
-        android:id="@+id/btnPassword"
-        android:layout_width="180dp"
-        android:layout_height="50dp"
-        android:layout_marginStart="10dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="8dp"
-        android:text="@string/setPassword"
-        android:onClick="setPassword"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/btnGetAddress"
-        app:layout_constraintTop_toBottomOf="@+id/tvTransactionHash" />
+    </ListView>
 
 </android.support.constraint.ConstraintLayout>
