@@ -16,4 +16,8 @@
     <string name="ethBalance">Eth Balance</string>
     <string name="transactionHistory">Transaction History</string>
     <string name="transactions">Transactions</string>
+    <string name="insertAddress">Please insert the receiver address below</string>
+    <string name="insertValue">Please insert the desired amount of ether to transfer</string>
+    <string name="confirm">Confirm</string>
+    <string name="cancel">Cancel</string>
 </resources>

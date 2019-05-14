@@ -1,11 +1,14 @@
 package com.example.neth2;
 
 import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -24,6 +27,7 @@ import android.widget.Toast;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import org.web3j.crypto.CipherException;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
@@ -37,7 +41,6 @@ import org.web3j.utils.Convert;
 
 /**
  *
- * @author: Gabriele Lavorato
  * This app can establish a connection to the Ethereum blockchain, can create an offline wallet as a JSON file and send ether via transaction to a given address.
  */
 
@@ -56,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
     private Button createWalletButton;
     private Button transactionHistoryButton;
     private SharedPreferences sharedPreferences;
+    private boolean connection;
 
     ListView listView;
     ArrayList<String> walletList;
@@ -68,6 +72,7 @@ public class MainActivity extends AppCompatActivity {
 
         setupBouncyCastle();
         walletList = new ArrayList<>();
+        connection = false;
 
         View listHeader = View.inflate(this, R.layout.activity_main_header, null);
         listView = (ListView) findViewById(R.id.listView);
@@ -99,6 +104,7 @@ public class MainActivity extends AppCompatActivity {
                 toastAsync("Connected!");
                 connectButton.setText("Connected to Ethereum");
                 connectButton.setBackgroundColor(0xFF7CCC26);
+                connection = true;
             }
             else {
                 toastAsync(clientVersion.getError().getMessage());
@@ -120,21 +126,6 @@ public class MainActivity extends AppCompatActivity {
             refreshList();
 
             toastAsync("Wallet created!");
-        }
-        catch (Exception e){
-            toastAsync("ERROR:" + e.getMessage());
-        }
-    }
-
-    /**
-     * This function displays the wallet address on screen. This information is used for testing purposes and to check transactions on Rinkeby Etherscan
-     * @param view
-     */
-    public void getAddress(View view){
-        try{
-            Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                    "/" + sharedPreferences.getString(WALLET_NAME_KEY, ""));
-            //TODO show address
         }
         catch (Exception e){
             toastAsync("ERROR:" + e.getMessage());
@@ -166,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void getBalance(String address){
+    public String getBalance(String address){
         // send asynchronous requests to get balance
         EthGetBalance ethGetBalance = null;
         try {
@@ -179,8 +170,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         BigDecimal etherValue = Convert.fromWei(ethGetBalance.getBalance().toString(), Convert.Unit.ETHER);
-        //balanceTv.setText(etherValue.toString());
-        //TODO: show prompt with eth balance
+        return etherValue.toString();
     }
 
     /**
@@ -269,6 +259,71 @@ public class MainActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
+    public void showEthBalance(final String walletName) {
+        String balance = null;
+        if (connection) {
+            try {
+                balance = getBalance(WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                        "/" + walletName).getAddress());
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (CipherException e) {
+                e.printStackTrace();
+            }
+            AlertDialog alertDialog = new AlertDialog.Builder(this)
+                    .setTitle("Ethereum Balance")
+                    .setMessage("Your Ethereum balance is " + balance + " Eth")
+                    .create();
+            alertDialog.show();
+        }
+        else {
+            AlertDialog alertDialog = new AlertDialog.Builder(this)
+                    .setTitle("Error")
+                    .setMessage("Connect to the blockchain first")
+                    .create();
+            alertDialog.show();
+        }
+    }
+
+    public void showAddress(String walletName) {
+        String address = null;
+        try {
+            address = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                    "/" + walletName).getAddress();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (CipherException e) {
+            e.printStackTrace();
+        }
+        AlertDialog alertDialog = new AlertDialog.Builder(this)
+                .setTitle("Wallet Address")
+                .setMessage("Your wallet address is " + address)
+                .setPositiveButton("Copy", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        String address = null;
+                        try {
+                            address = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                                    "/" + walletName).getAddress();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } catch (CipherException e) {
+                            e.printStackTrace();
+                        }
+                        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                        ClipData clip = ClipData.newPlainText("", address);
+                        clipboard.setPrimaryClip(clip);
+                        toastAsync("Address has been copied to clipboard.");
+                    }
+                })
+                .setNegativeButton("Close", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                })
+                .create();
+        alertDialog.show();
+    }
+
     public class WalletAdapter extends ArrayAdapter<String> {
 
         public WalletAdapter(Context context, int textView) {
@@ -291,7 +346,7 @@ public class MainActivity extends AppCompatActivity {
             address.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    //TODO: show wallet address
+                    showAddress(walletTV.getText().toString());
                 }
             });
             final Button transaction = (Button) itemView.findViewById(R.id.transactionButton);
@@ -305,7 +360,7 @@ public class MainActivity extends AppCompatActivity {
             ethBalance.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    //TODO: show wallet balance
+                    showEthBalance(walletTV.getText().toString());
                 }
             });
             final Button deleteButton = (Button) itemView.findViewById(R.id.deleteButton);
