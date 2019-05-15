@@ -51,13 +51,10 @@ public class MainActivity extends AppCompatActivity {
 
     private final String password = "medium";
     private Web3j web3;
-    private String attempt;
     private String walletPath;
     private File walletDirectory;
     private String walletName;
     private Button connectButton;
-    private Button createWalletButton;
-    private Button transactionHistoryButton;
     private SharedPreferences sharedPreferences;
     private boolean connection;
 
@@ -75,11 +72,9 @@ public class MainActivity extends AppCompatActivity {
         connection = false;
 
         View listHeader = View.inflate(this, R.layout.activity_main_header, null);
-        listView = (ListView) findViewById(R.id.listView);
+        listView = findViewById(R.id.listView);
         listView.addHeaderView(listHeader);
-        connectButton = (Button) findViewById(R.id.btnConnect);
-        createWalletButton = (Button) findViewById(R.id.btnCreateWallet);
-        transactionHistoryButton = (Button) findViewById(R.id.btnTransactionHistory);
+        connectButton = findViewById(R.id.btnConnect);
 
         listAdapter = new WalletAdapter(MainActivity.this, R.id.walletAlias);
         listView.setAdapter(listAdapter);
@@ -87,8 +82,6 @@ public class MainActivity extends AppCompatActivity {
         walletPath = getFilesDir().getAbsolutePath();
         walletDirectory = new File(walletPath);
         sharedPreferences = this.getSharedPreferences("com.example.Neth2", Context.MODE_PRIVATE);
-        String storedPath = sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                "/" + sharedPreferences.getString(WALLET_NAME_KEY, "");
         refreshList();
     }
 
@@ -134,23 +127,16 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * This function accesses the wallet using a password and a path. Then it sends some ether to a fixed address.
-     * @param view
+     * @param
      */
-    public void sendTransaction(View view){
+    public void sendTransaction(String walletName, String address, String value){
         try{
-            if(attempt.equals(password)){
             Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                    "/" + sharedPreferences.getString(WALLET_NAME_KEY, ""));
-            TransactionReceipt receipt = Transfer.sendFunds(web3,credentials,"0x31B98D14007bDEe637298086988A0bBd31184523",
-                    new BigDecimal("0.0001"), Convert.Unit.ETHER).sendAsync().get();
+                    "/" + walletName);
+            TransactionReceipt receipt = Transfer.sendFunds(web3,credentials,address,
+                    new BigDecimal(value), Convert.Unit.ETHER).sendAsync().get();
             toastAsync("Transaction complete: " + receipt.getTransactionHash());
-            //transactionHashTv.setText(receipt.getTransactionHash());
             //TODO: add transaction receipt in TRANSACTION page
-            getBalance(credentials.getAddress());
-            }
-            else {
-                toastAsync("Wrong password");
-            }
         }
         catch (Exception e){
             toastAsync(e.getMessage());
@@ -173,23 +159,6 @@ public class MainActivity extends AppCompatActivity {
         return etherValue.toString();
     }
 
-    /**
-     * Prototype function for setting a password.
-     * @param view
-     */
-    public void setPassword(View view){
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View passView = getLayoutInflater().inflate(R.layout.password, null);
-        EditText passwordEt = (EditText) passView.findViewById(R.id.etPassword);
-        Button setPasswordBtn = (Button) passView.findViewById(R.id.btnLogin);
-        setPasswordBtn.setOnClickListener(view1 -> {
-            toastAsync("Password set.");
-            attempt = passwordEt.getText().toString();
-        });
-
-        builder.setView(passView);
-        builder.show();
-    }
 
     /**
      * Setup Security provider that corrects some issues with the BuoncyCastle library.
@@ -324,6 +293,23 @@ public class MainActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
+    public void showTransaction(String walletName){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View transactionView = getLayoutInflater().inflate(R.layout.transaction, null);
+        EditText insertAddress = (EditText) transactionView.findViewById(R.id.insertAddressET);
+        EditText insertValue = (EditText) transactionView.findViewById(R.id.insertValueET);
+        Button confirmButton = (Button) transactionView.findViewById(R.id.confirmBtn);
+        Button cancelButton = (Button) transactionView.findViewById(R.id.cancelBtn);
+        confirmButton.setOnClickListener(view1 -> {
+            sendTransaction(walletName, insertAddress.getText().toString(), insertValue.getText().toString());
+        });
+        cancelButton.setOnClickListener(view1 -> {
+
+        });
+        builder.setView(transactionView);
+        builder.show();
+    }
+
     public class WalletAdapter extends ArrayAdapter<String> {
 
         public WalletAdapter(Context context, int textView) {
@@ -353,7 +339,7 @@ public class MainActivity extends AppCompatActivity {
             transaction.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    //TODO: prompt transaction request
+                    showTransaction(walletTV.getText().toString());
                 }
             });
             final Button ethBalance =  (Button) itemView.findViewById(R.id.ethBalanceButton);
