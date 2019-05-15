@@ -10,7 +10,6 @@ import java.util.ArrayList;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -50,6 +49,7 @@ public class MainActivity extends AppCompatActivity {
     public static final String WALLET_DIRECTORY_KEY = "WALLET_DIRECTORY_KEY";
 
     private final String password = "medium";
+    private final String infuraEndpoint = "https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e";
     private Web3j web3;
     private String walletPath;
     private File walletDirectory;
@@ -87,10 +87,9 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * This function create a connection to the Rinkeby testnet via Infura endpoint.
-     * @param view
      */
     public void connectToEthNetwork(View view) {
-        web3 = Web3j.build(new HttpService("https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e"));
+        web3 = Web3j.build(new HttpService(infuraEndpoint));
         try {
             Web3ClientVersion clientVersion = web3.web3ClientVersion().sendAsync().get();
             if(!clientVersion.hasError()){
@@ -109,7 +108,6 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * This function generates a JSON file wallet and stores on the phone physical storage.
-     * @param view
      */
     public void createWallet(View view){
         try{
@@ -127,7 +125,6 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * This function accesses the wallet using a password and a path. Then it sends some ether to a fixed address.
-     * @param
      */
     public void sendTransaction(String walletName, String address, String value){
         try{
@@ -136,7 +133,6 @@ public class MainActivity extends AppCompatActivity {
             TransactionReceipt receipt = Transfer.sendFunds(web3,credentials,address,
                     new BigDecimal(value), Convert.Unit.ETHER).sendAsync().get();
             toastAsync("Transaction complete: " + receipt.getTransactionHash());
-            //TODO: add transaction receipt in TRANSACTION page
         }
         catch (Exception e){
             toastAsync(e.getMessage());
@@ -162,7 +158,6 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Setup Security provider that corrects some issues with the BuoncyCastle library.
-     * @author: serso
      */
     private void setupBouncyCastle() {
         final Provider provider = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
@@ -184,12 +179,9 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Toast function to display messages and errors. Mainly used for testing purposes.
-     * @param message
      */
     public void toastAsync(String message) {
-        runOnUiThread(() -> {
-            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
-        });
+        runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
     }
 
     public void refreshList(){
@@ -219,11 +211,7 @@ public class MainActivity extends AppCompatActivity {
                     walletList.remove(walletName);
                     listAdapter.notifyDataSetChanged();
                 })
-                .setNegativeButton("No", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                    }
-                })
+                .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
                 .create();
         alertDialog.show();
     }
@@ -267,28 +255,22 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog alertDialog = new AlertDialog.Builder(this)
                 .setTitle("Wallet Address")
                 .setMessage("Your wallet address is " + address)
-                .setPositiveButton("Copy", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        String address = null;
-                        try {
-                            address = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                                    "/" + walletName).getAddress();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (CipherException e) {
-                            e.printStackTrace();
-                        }
-                        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                        ClipData clip = ClipData.newPlainText("", address);
-                        clipboard.setPrimaryClip(clip);
-                        toastAsync("Address has been copied to clipboard.");
+                .setPositiveButton("Copy", (dialog, which) -> {
+                    String address1 = null;
+                    try {
+                        address1 = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                                "/" + walletName).getAddress();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (CipherException e) {
+                        e.printStackTrace();
                     }
+                    ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                    ClipData clip = ClipData.newPlainText("", address1);
+                    clipboard.setPrimaryClip(clip);
+                    toastAsync("Address has been copied to clipboard.");
                 })
-                .setNegativeButton("Close", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                    }
-                })
+                .setNegativeButton("Close", (dialog, which) -> dialog.dismiss())
                 .create();
         alertDialog.show();
     }
@@ -296,13 +278,11 @@ public class MainActivity extends AppCompatActivity {
     public void showTransaction(String walletName){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View transactionView = getLayoutInflater().inflate(R.layout.transaction, null);
-        EditText insertAddress = (EditText) transactionView.findViewById(R.id.insertAddressET);
-        EditText insertValue = (EditText) transactionView.findViewById(R.id.insertValueET);
-        Button confirmButton = (Button) transactionView.findViewById(R.id.confirmBtn);
-        Button cancelButton = (Button) transactionView.findViewById(R.id.cancelBtn);
-        confirmButton.setOnClickListener(view1 -> {
-            sendTransaction(walletName, insertAddress.getText().toString(), insertValue.getText().toString());
-        });
+        EditText insertAddress = transactionView.findViewById(R.id.insertAddressET);
+        EditText insertValue = transactionView.findViewById(R.id.insertValueET);
+        Button confirmButton = transactionView.findViewById(R.id.confirmBtn);
+        Button cancelButton = transactionView.findViewById(R.id.cancelBtn);
+        confirmButton.setOnClickListener(view1 -> sendTransaction(walletName, insertAddress.getText().toString(), insertValue.getText().toString()));
         cancelButton.setOnClickListener(view1 -> {
 
         });
@@ -325,38 +305,16 @@ public class MainActivity extends AppCompatActivity {
         public View getView(int position, View convertView, ViewGroup parent) {
             View itemView = LayoutInflater.from(parent.getContext()).
                     inflate(R.layout.list_items, parent, false);
-
-            final TextView walletTV = (TextView) itemView.findViewById(R.id.walletAlias);
+            final TextView walletTV = itemView.findViewById(R.id.walletAlias);
             walletTV.setText(walletList.get(position));
-            final Button address = (Button) itemView.findViewById(R.id.addressButton);
-            address.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    showAddress(walletTV.getText().toString());
-                }
-            });
-            final Button transaction = (Button) itemView.findViewById(R.id.transactionButton);
-            transaction.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    showTransaction(walletTV.getText().toString());
-                }
-            });
-            final Button ethBalance =  (Button) itemView.findViewById(R.id.ethBalanceButton);
-            ethBalance.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    showEthBalance(walletTV.getText().toString());
-                }
-            });
-            final Button deleteButton = (Button) itemView.findViewById(R.id.deleteButton);
-            deleteButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    deleteWallet(walletTV.getText().toString());
-                }
-            });
-
+            final Button address = itemView.findViewById(R.id.addressButton);
+            address.setOnClickListener(view -> showAddress(walletTV.getText().toString()));
+            final Button transaction = itemView.findViewById(R.id.transactionButton);
+            transaction.setOnClickListener(view -> showTransaction(walletTV.getText().toString()));
+            final Button ethBalance =  itemView.findViewById(R.id.ethBalanceButton);
+            ethBalance.setOnClickListener(view -> showEthBalance(walletTV.getText().toString()));
+            final Button deleteButton = itemView.findViewById(R.id.deleteButton);
+            deleteButton.setOnClickListener(view -> deleteWallet(walletTV.getText().toString()));
             return itemView;
         }
 
