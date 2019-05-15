@@ -186,13 +186,14 @@ public class MainActivity extends AppCompatActivity {
 
     public void refreshList(){
         File folder = new File(sharedPreferences.getString(WALLET_DIRECTORY_KEY, ""));
-        for(File f : folder.listFiles())
-        {
-            if(!walletList.contains(f.getName()))
-            walletList.add(f.getName());
+        if(folder.exists()) {
+            for (File f : folder.listFiles()) {
+                if (!walletList.contains(f.getName()))
+                    walletList.add(f.getName());
+            }
+            if (listAdapter != null)
+                listAdapter.notifyDataSetChanged();
         }
-        if(listAdapter != null)
-            listAdapter.notifyDataSetChanged();
     }
 
     public void deleteWallet(final String walletName) {
