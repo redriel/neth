@@ -20,4 +20,5 @@
     <string name="insertValue">Please insert the desired amount of ether to transfer</string>
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
+    <string name="upload">Upload File</string>
 </resources>

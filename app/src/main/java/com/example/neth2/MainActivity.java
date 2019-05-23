@@ -1,19 +1,12 @@
 package com.example.neth2;
 
-import java.io.File;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.security.Provider;
-import java.security.Security;
-import java.util.ArrayList;
-
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Bundle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,21 +18,52 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
+import org.web3j.abi.FunctionEncoder;
+import org.web3j.abi.FunctionReturnDecoder;
+import org.web3j.abi.TypeReference;
+import org.web3j.abi.datatypes.DynamicBytes;
+import org.web3j.abi.datatypes.Function;
+import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.Uint;
+import org.web3j.abi.datatypes.Utf8String;
 import org.web3j.crypto.CipherException;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.request.Transaction;
+import org.web3j.protocol.core.methods.response.EthBlock;
+import org.web3j.protocol.core.methods.response.EthCall;
 import org.web3j.protocol.core.methods.response.EthGetBalance;
+import org.web3j.protocol.core.methods.response.EthSendTransaction;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.core.methods.response.Web3ClientVersion;
 import org.web3j.protocol.http.HttpService;
+import org.web3j.tx.Contract;
 import org.web3j.tx.Transfer;
+import org.web3j.tx.gas.DefaultGasProvider;
 import org.web3j.utils.Convert;
 
+import java.io.File;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.security.Provider;
+import java.security.Security;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import io.ipfs.api.IPFS;
+import io.ipfs.api.MerkleNode;
+import io.ipfs.api.NamedStreamable;
+import io.ipfs.multiaddr.MultiAddress;
+
 /**
- *
  * This app can establish a connection to the Ethereum blockchain, can create an offline wallet as a JSON file and send ether via transaction to a given address.
  */
 
@@ -57,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
     private Button connectButton;
     private SharedPreferences sharedPreferences;
     private boolean connection;
+    private Contract contract;
 
     ListView listView;
     ArrayList<String> walletList;
@@ -83,6 +108,24 @@ public class MainActivity extends AppCompatActivity {
         walletDirectory = new File(walletPath);
         sharedPreferences = this.getSharedPreferences("com.example.Neth2", Context.MODE_PRIVATE);
         refreshList();
+
+    }
+
+    public void uploadFile(View view) throws IOException, CipherException, InterruptedException, ExecutionException, TimeoutException {
+        BigInteger gasPrice = DefaultGasProvider.GAS_PRICE;
+        BigInteger gasLimit = DefaultGasProvider.GAS_LIMIT;
+        String contractAddress = "0xEcB494A8d75a64D4D18e9A659f3fA2b70Eb09324";
+        Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                "/" + "UTC--2019-05-22T10-17-10.0Z--16aad99ebdb03a50223907d3b44a61ac6b390c6b.json");
+        try {
+            SignUpRegistry signUpRegistry = SignUpRegistry.load(contractAddress, web3, credentials, gasPrice, gasLimit);
+            TransactionReceipt transactionReceipt = signUpRegistry.addDocument("0x16aAD99Ebdb03A50223907D3b44A61ac6b390C6b",
+                    "caterina", "patatino").sendAsync().get(3, TimeUnit.MINUTES);
+            toastAsync("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+        } catch (Exception e) {
+            toastAsync(e.getMessage());
+            System.out.println(e.getMessage()); //todo: remove this line after testing
+        }
     }
 
     /**
@@ -92,13 +135,12 @@ public class MainActivity extends AppCompatActivity {
         web3 = Web3j.build(new HttpService(infuraEndpoint));
         try {
             Web3ClientVersion clientVersion = web3.web3ClientVersion().sendAsync().get();
-            if(!clientVersion.hasError()){
+            if (!clientVersion.hasError()) {
                 toastAsync("Connected!");
                 connectButton.setText("Connected to Ethereum");
                 connectButton.setBackgroundColor(0xFF7CCC26);
                 connection = true;
-            }
-            else {
+            } else {
                 toastAsync(clientVersion.getError().getMessage());
             }
         } catch (Exception e) {
@@ -109,16 +151,15 @@ public class MainActivity extends AppCompatActivity {
     /**
      * This function generates a JSON file wallet and stores on the phone physical storage.
      */
-    public void createWallet(View view){
-        try{
+    public void createWallet(View view) {
+        try {
             walletName = WalletUtils.generateFullNewWalletFile(password, walletDirectory);
             sharedPreferences.edit().putString(WALLET_NAME_KEY, walletName).apply();
             sharedPreferences.edit().putString(WALLET_DIRECTORY_KEY, walletDirectory.getAbsolutePath()).apply();
             refreshList();
 
             toastAsync("Wallet created!");
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             toastAsync("ERROR:" + e.getMessage());
         }
     }
@@ -126,20 +167,19 @@ public class MainActivity extends AppCompatActivity {
     /**
      * This function accesses the wallet using a password and a path. Then it sends some ether to a fixed address.
      */
-    public void sendTransaction(String walletName, String address, String value){
-        try{
+    public void sendTransaction(String walletName, String address, String value) {
+        try {
             Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
                     "/" + walletName);
-            TransactionReceipt receipt = Transfer.sendFunds(web3,credentials,address,
+            TransactionReceipt receipt = Transfer.sendFunds(web3, credentials, address,
                     new BigDecimal(value), Convert.Unit.ETHER).sendAsync().get();
             toastAsync("Transaction complete: " + receipt.getTransactionHash());
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             toastAsync(e.getMessage());
         }
     }
 
-    public String getBalance(String address){
+    public String getBalance(String address) {
         // send asynchronous requests to get balance
         EthGetBalance ethGetBalance = null;
         try {
@@ -154,7 +194,6 @@ public class MainActivity extends AppCompatActivity {
         BigDecimal etherValue = Convert.fromWei(ethGetBalance.getBalance().toString(), Convert.Unit.ETHER);
         return etherValue.toString();
     }
-
 
     /**
      * Setup Security provider that corrects some issues with the BuoncyCastle library.
@@ -184,9 +223,9 @@ public class MainActivity extends AppCompatActivity {
         runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
     }
 
-    public void refreshList(){
+    public void refreshList() {
         File folder = new File(sharedPreferences.getString(WALLET_DIRECTORY_KEY, ""));
-        if(folder.exists()) {
+        if (folder.exists()) {
             for (File f : folder.listFiles()) {
                 if (!walletList.contains(f.getName()))
                     walletList.add(f.getName());
@@ -233,8 +272,7 @@ public class MainActivity extends AppCompatActivity {
                     .setMessage("Your Ethereum balance is " + balance + " Eth")
                     .create();
             alertDialog.show();
-        }
-        else {
+        } else {
             AlertDialog alertDialog = new AlertDialog.Builder(this)
                     .setTitle("Error")
                     .setMessage("Connect to the blockchain first")
@@ -276,7 +314,7 @@ public class MainActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
-    public void showTransaction(String walletName){
+    public void showTransaction(String walletName) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View transactionView = getLayoutInflater().inflate(R.layout.transaction, null);
         EditText insertAddress = transactionView.findViewById(R.id.insertAddressET);
@@ -306,16 +344,22 @@ public class MainActivity extends AppCompatActivity {
         public View getView(int position, View convertView, ViewGroup parent) {
             View itemView = LayoutInflater.from(parent.getContext()).
                     inflate(R.layout.list_items, parent, false);
+
             final TextView walletTV = itemView.findViewById(R.id.walletAlias);
             walletTV.setText(walletList.get(position));
+
             final Button address = itemView.findViewById(R.id.addressButton);
             address.setOnClickListener(view -> showAddress(walletTV.getText().toString()));
+
             final Button transaction = itemView.findViewById(R.id.transactionButton);
             transaction.setOnClickListener(view -> showTransaction(walletTV.getText().toString()));
-            final Button ethBalance =  itemView.findViewById(R.id.ethBalanceButton);
+
+            final Button ethBalance = itemView.findViewById(R.id.ethBalanceButton);
             ethBalance.setOnClickListener(view -> showEthBalance(walletTV.getText().toString()));
+
             final Button deleteButton = itemView.findViewById(R.id.deleteButton);
             deleteButton.setOnClickListener(view -> deleteWallet(walletTV.getText().toString()));
+
             return itemView;
         }
 
