@@ -99,11 +99,11 @@ public class MainActivity extends AppCompatActivity {
                 "/" + "UTC--2019-05-29T07-28-09.8Z--9e4bf20d07d2e65de5fa97419d40588c0ca2e1ce.json");
         try {
             SignUpRegistry signUpRegistry = SignUpRegistry.load(contractAddress, web3j, credentials, gasPrice, gasLimit);
-            TransactionReceipt transactionReceipt1  = signUpRegistry.addUser("0x9e4bf20d07d2e65de5fa97419d40588c0ca2e1ce", false).sendAsync().get(2, TimeUnit.MINUTES);
-            System.out.println("Transaction hash: " + transactionReceipt1.getTransactionHash());
-            System.out.println("Successful transaction: gas used " + transactionReceipt1.getGasUsed());
+            //TransactionReceipt transactionReceipt1  = signUpRegistry.addUser("0x9e4bf20d07d2e65de5fa97419d40588c0ca2e1ce", false).sendAsync().get(2, TimeUnit.MINUTES);
+            //System.out.println("Transaction hash: " + transactionReceipt1.getTransactionHash());
+            //System.out.println("Successful transaction: gas used " + transactionReceipt1.getGasUsed());
             TransactionReceipt transactionReceipt2 = signUpRegistry.addDocument("0x9e4bf20d07d2e65de5fa97419d40588c0ca2e1ce",
-                    "hash", "key").sendAsync().get(30, TimeUnit.MINUTES);
+                    "second_hash", "key").sendAsync().get(30, TimeUnit.MINUTES);
             toastAsync("Successful transaction: gas used " + transactionReceipt2.getGasUsed());
             System.out.println("Successful transaction: gas used " + transactionReceipt2.getGasUsed());
             System.out.println("Transaction hash: " + transactionReceipt2.getTransactionHash());
