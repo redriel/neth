@@ -1,5 +1,32 @@
 package com.example.neth2;
 
+import android.widget.TextView;
+import android.widget.Toast;
+
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import org.web3j.crypto.CipherException;
+import org.web3j.crypto.Credentials;
+import org.web3j.crypto.WalletUtils;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.methods.response.EthGetBalance;
+import org.web3j.protocol.core.methods.response.TransactionReceipt;
+import org.web3j.protocol.core.methods.response.Web3ClientVersion;
+import org.web3j.protocol.http.HttpService;
+import org.web3j.tx.Transfer;
+import org.web3j.tx.gas.DefaultGasProvider;
+import org.web3j.utils.Convert;
+
+import java.io.File;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.security.Provider;
+import java.security.Security;
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
+
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
@@ -14,54 +41,8 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.web3j.abi.FunctionEncoder;
-import org.web3j.abi.FunctionReturnDecoder;
-import org.web3j.abi.TypeReference;
-import org.web3j.abi.datatypes.DynamicBytes;
-import org.web3j.abi.datatypes.Function;
-import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.Uint;
-import org.web3j.abi.datatypes.Utf8String;
-import org.web3j.crypto.CipherException;
-import org.web3j.crypto.Credentials;
-import org.web3j.crypto.WalletUtils;
-import org.web3j.protocol.Web3j;
-import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.methods.request.Transaction;
-import org.web3j.protocol.core.methods.response.EthBlock;
-import org.web3j.protocol.core.methods.response.EthCall;
-import org.web3j.protocol.core.methods.response.EthGetBalance;
-import org.web3j.protocol.core.methods.response.EthSendTransaction;
-import org.web3j.protocol.core.methods.response.TransactionReceipt;
-import org.web3j.protocol.core.methods.response.Web3ClientVersion;
-import org.web3j.protocol.http.HttpService;
-import org.web3j.tx.Contract;
-import org.web3j.tx.Transfer;
-import org.web3j.tx.gas.DefaultGasProvider;
-import org.web3j.utils.Convert;
-
-import java.io.File;
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.security.Provider;
-import java.security.Security;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-
-import io.ipfs.api.IPFS;
-import io.ipfs.api.MerkleNode;
-import io.ipfs.api.NamedStreamable;
-import io.ipfs.multiaddr.MultiAddress;
+import static android.renderscript.ScriptIntrinsicBLAS.UNIT;
 
 /**
  * This app can establish a connection to the Ethereum blockchain, can create an offline wallet as a JSON file and send ether via transaction to a given address.
@@ -71,21 +52,22 @@ public class MainActivity extends AppCompatActivity {
 
     public static final String WALLET_NAME_KEY = "WALLET_NAME_KEY";
     public static final String WALLET_DIRECTORY_KEY = "WALLET_DIRECTORY_KEY";
+    public static final BigInteger gasPrice = DefaultGasProvider.GAS_PRICE;
+    public static final BigInteger gasLimit = DefaultGasProvider.GAS_LIMIT;
+
+    public ListView listView;
+    public ArrayList<String> walletList;
+    public WalletAdapter listAdapter;
 
     private final String password = "medium";
     private final String infuraEndpoint = "https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e";
-    private Web3j web3;
+    private Web3j web3j;
     private String walletPath;
     private File walletDirectory;
     private String walletName;
     private Button connectButton;
     private SharedPreferences sharedPreferences;
     private boolean connection;
-    private Contract contract;
-
-    ListView listView;
-    ArrayList<String> walletList;
-    WalletAdapter listAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,17 +93,20 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void uploadFile(View view) throws IOException, CipherException, InterruptedException, ExecutionException, TimeoutException {
-        BigInteger gasPrice = DefaultGasProvider.GAS_PRICE;
-        BigInteger gasLimit = DefaultGasProvider.GAS_LIMIT;
+    public void uploadFile(View view) throws IOException, CipherException {
         String contractAddress = "0xEcB494A8d75a64D4D18e9A659f3fA2b70Eb09324";
         Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                "/" + "UTC--2019-05-22T10-17-10.0Z--16aad99ebdb03a50223907d3b44a61ac6b390c6b.json");
+                "/" + "UTC--2019-05-29T07-28-09.8Z--9e4bf20d07d2e65de5fa97419d40588c0ca2e1ce.json");
         try {
-            SignUpRegistry signUpRegistry = SignUpRegistry.load(contractAddress, web3, credentials, gasPrice, gasLimit);
-            TransactionReceipt transactionReceipt = signUpRegistry.addDocument("0x16aAD99Ebdb03A50223907D3b44A61ac6b390C6b",
-                    "caterina", "patatino").sendAsync().get(3, TimeUnit.MINUTES);
-            toastAsync("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+            SignUpRegistry signUpRegistry = SignUpRegistry.load(contractAddress, web3j, credentials, gasPrice, gasLimit);
+            TransactionReceipt transactionReceipt1  = signUpRegistry.addUser("0x9e4bf20d07d2e65de5fa97419d40588c0ca2e1ce", false).sendAsync().get(2, TimeUnit.MINUTES);
+            System.out.println("Transaction hash: " + transactionReceipt1.getTransactionHash());
+            System.out.println("Successful transaction: gas used " + transactionReceipt1.getGasUsed());
+            TransactionReceipt transactionReceipt2 = signUpRegistry.addDocument("0x9e4bf20d07d2e65de5fa97419d40588c0ca2e1ce",
+                    "hash", "key").sendAsync().get(30, TimeUnit.MINUTES);
+            toastAsync("Successful transaction: gas used " + transactionReceipt2.getGasUsed());
+            System.out.println("Successful transaction: gas used " + transactionReceipt2.getGasUsed());
+            System.out.println("Transaction hash: " + transactionReceipt2.getTransactionHash());
         } catch (Exception e) {
             toastAsync(e.getMessage());
             System.out.println(e.getMessage()); //todo: remove this line after testing
@@ -132,9 +117,9 @@ public class MainActivity extends AppCompatActivity {
      * This function create a connection to the Rinkeby testnet via Infura endpoint.
      */
     public void connectToEthNetwork(View view) {
-        web3 = Web3j.build(new HttpService(infuraEndpoint));
+        web3j = Web3j.build(new HttpService(infuraEndpoint));
         try {
-            Web3ClientVersion clientVersion = web3.web3ClientVersion().sendAsync().get();
+            Web3ClientVersion clientVersion = web3j.web3ClientVersion().sendAsync().get();
             if (!clientVersion.hasError()) {
                 toastAsync("Connected!");
                 connectButton.setText("Connected to Ethereum");
@@ -171,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
                     "/" + walletName);
-            TransactionReceipt receipt = Transfer.sendFunds(web3, credentials, address,
+            TransactionReceipt receipt = Transfer.sendFunds(web3j, credentials, address,
                     new BigDecimal(value), Convert.Unit.ETHER).sendAsync().get();
             toastAsync("Transaction complete: " + receipt.getTransactionHash());
         } catch (Exception e) {
@@ -183,7 +168,7 @@ public class MainActivity extends AppCompatActivity {
         // send asynchronous requests to get balance
         EthGetBalance ethGetBalance = null;
         try {
-            ethGetBalance = web3
+            ethGetBalance = web3j
                     .ethGetBalance(address, DefaultBlockParameterName.LATEST)
                     .sendAsync()
                     .get();
@@ -196,7 +181,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Setup Security provider that corrects some issues with the BuoncyCastle library.
+     * Setup Security provider that corrects some issues with the BouncyCastle library.
      */
     private void setupBouncyCastle() {
         final Provider provider = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
