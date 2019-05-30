@@ -25,7 +25,9 @@ import java.math.BigInteger;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -41,8 +43,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
-
-import static android.renderscript.ScriptIntrinsicBLAS.UNIT;
 
 /**
  * This app can establish a connection to the Ethereum blockchain, can create an offline wallet as a JSON file and send ether via transaction to a given address.
@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
 
     private final String password = "medium";
     private final String infuraEndpoint = "https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e";
+    private final String contractAddress = "0xEcB494A8d75a64D4D18e9A659f3fA2b70Eb09324";
     private Web3j web3j;
     private String walletPath;
     private File walletDirectory;
@@ -93,23 +94,52 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void uploadFile(View view) throws IOException, CipherException {
-        String contractAddress = "0xEcB494A8d75a64D4D18e9A659f3fA2b70Eb09324";
-        Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                "/" + "UTC--2019-05-29T07-28-09.8Z--9e4bf20d07d2e65de5fa97419d40588c0ca2e1ce.json");
-        try {
+    public void uploadFile(String walletName) throws IOException, CipherException {
+        if(connection) {
+            Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                    "/" + walletName);
             SignUpRegistry signUpRegistry = SignUpRegistry.load(contractAddress, web3j, credentials, gasPrice, gasLimit);
-            //TransactionReceipt transactionReceipt1  = signUpRegistry.addUser("0x9e4bf20d07d2e65de5fa97419d40588c0ca2e1ce", false).sendAsync().get(2, TimeUnit.MINUTES);
-            //System.out.println("Transaction hash: " + transactionReceipt1.getTransactionHash());
-            //System.out.println("Successful transaction: gas used " + transactionReceipt1.getGasUsed());
-            TransactionReceipt transactionReceipt2 = signUpRegistry.addDocument("0x9e4bf20d07d2e65de5fa97419d40588c0ca2e1ce",
-                    "second_hash", "key").sendAsync().get(30, TimeUnit.MINUTES);
-            toastAsync("Successful transaction: gas used " + transactionReceipt2.getGasUsed());
-            System.out.println("Successful transaction: gas used " + transactionReceipt2.getGasUsed());
-            System.out.println("Transaction hash: " + transactionReceipt2.getTransactionHash());
-        } catch (Exception e) {
-            toastAsync(e.getMessage());
-            System.out.println(e.getMessage()); //todo: remove this line after testing
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            View transactionView = getLayoutInflater().inflate(R.layout.upload, null);
+            EditText hashET = transactionView.findViewById(R.id.hashET);
+            EditText eSKET = transactionView.findViewById(R.id.eSKET);
+            Button signUpButton = transactionView.findViewById(R.id.signUpBtn);
+            Button uploadButton = transactionView.findViewById(R.id.uploadBtn);
+
+            signUpButton.setOnClickListener(view1 -> {
+                TransactionReceipt transactionReceipt = null;
+                try {
+                    transactionReceipt = signUpRegistry.addUser(credentials.getAddress(), false).sendAsync().get(2, TimeUnit.MINUTES);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                toastAsync("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+                System.out.println("Transaction hash: " + transactionReceipt.getTransactionHash());
+                System.out.println("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+            });
+
+            uploadButton.setOnClickListener(view1 -> {
+                TransactionReceipt transactionReceipt = null;
+                try {
+                    transactionReceipt = signUpRegistry.addDocument(credentials.getAddress(),
+                            hashET.getText().toString(), eSKET.getText().toString()).sendAsync().get(3, TimeUnit.MINUTES);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                toastAsync("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+                System.out.println("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+                System.out.println("Transaction hash: " + transactionReceipt.getTransactionHash());
+            });
+
+            builder.setView(transactionView);
+            builder.show();
+        } else {
+            AlertDialog alertDialog = new AlertDialog.Builder(this)
+                    .setTitle("Error")
+                    .setMessage("Connect to the blockchain first")
+                    .create();
+            alertDialog.show();
         }
     }
 
@@ -241,22 +271,33 @@ public class MainActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
-    public void showEthBalance(final String walletName) {
-        String balance = null;
+    public void showInfo(final String walletName)  {
         if (connection) {
+            Credentials credentials = null;
             try {
-                balance = getBalance(WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                        "/" + walletName).getAddress());
+                credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                        "/" + walletName);
             } catch (IOException e) {
                 e.printStackTrace();
             } catch (CipherException e) {
                 e.printStackTrace();
             }
-            AlertDialog alertDialog = new AlertDialog.Builder(this)
-                    .setTitle("Ethereum Balance")
-                    .setMessage("Your Ethereum balance is " + balance + " Eth")
-                    .create();
-            alertDialog.show();
+
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            View transactionView = getLayoutInflater().inflate(R.layout.info, null);
+            EditText showAddress = transactionView.findViewById(R.id.AddressET);
+            showAddress.setText(credentials.getAddress());
+            EditText showBalance = transactionView.findViewById(R.id.ethBalanceET);
+            showBalance.setText(getBalance(credentials.getAddress()));
+            Button copyButton = transactionView.findViewById(R.id.copyBtn);
+            copyButton.setOnClickListener(view1 -> {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("", showAddress.getText());
+                clipboard.setPrimaryClip(clip);
+                toastAsync("Address has been copied to clipboard.");
+            });
+            builder.setView(transactionView);
+            builder.show();
         } else {
             AlertDialog alertDialog = new AlertDialog.Builder(this)
                     .setTitle("Error")
@@ -266,49 +307,16 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void showAddress(String walletName) {
-        String address = null;
-        try {
-            address = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                    "/" + walletName).getAddress();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (CipherException e) {
-            e.printStackTrace();
-        }
-        AlertDialog alertDialog = new AlertDialog.Builder(this)
-                .setTitle("Wallet Address")
-                .setMessage("Your wallet address is " + address)
-                .setPositiveButton("Copy", (dialog, which) -> {
-                    String address1 = null;
-                    try {
-                        address1 = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                                "/" + walletName).getAddress();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (CipherException e) {
-                        e.printStackTrace();
-                    }
-                    ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                    ClipData clip = ClipData.newPlainText("", address1);
-                    clipboard.setPrimaryClip(clip);
-                    toastAsync("Address has been copied to clipboard.");
-                })
-                .setNegativeButton("Close", (dialog, which) -> dialog.dismiss())
-                .create();
-        alertDialog.show();
-    }
-
     public void showTransaction(String walletName) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View transactionView = getLayoutInflater().inflate(R.layout.transaction, null);
-        EditText insertAddress = transactionView.findViewById(R.id.insertAddressET);
-        EditText insertValue = transactionView.findViewById(R.id.insertValueET);
+        EditText insertAddress = transactionView.findViewById(R.id.AddressET);
+        EditText insertValue = transactionView.findViewById(R.id.ethBalanceET);
         Button confirmButton = transactionView.findViewById(R.id.confirmBtn);
         Button cancelButton = transactionView.findViewById(R.id.cancelBtn);
         confirmButton.setOnClickListener(view1 -> sendTransaction(walletName, insertAddress.getText().toString(), insertValue.getText().toString()));
         cancelButton.setOnClickListener(view1 -> {
-
+            //todo: implement close dialog
         });
         builder.setView(transactionView);
         builder.show();
@@ -333,14 +341,20 @@ public class MainActivity extends AppCompatActivity {
             final TextView walletTV = itemView.findViewById(R.id.walletAlias);
             walletTV.setText(walletList.get(position));
 
-            final Button address = itemView.findViewById(R.id.addressButton);
-            address.setOnClickListener(view -> showAddress(walletTV.getText().toString()));
+            final Button address = itemView.findViewById(R.id.infoButton);
+            address.setOnClickListener(view -> showInfo(walletTV.getText().toString()));
 
             final Button transaction = itemView.findViewById(R.id.transactionButton);
             transaction.setOnClickListener(view -> showTransaction(walletTV.getText().toString()));
 
-            final Button ethBalance = itemView.findViewById(R.id.ethBalanceButton);
-            ethBalance.setOnClickListener(view -> showEthBalance(walletTV.getText().toString()));
+            final Button uploadDocument = itemView.findViewById(R.id.uploadDocumentButton);
+            uploadDocument.setOnClickListener(view -> {
+                try {
+                    uploadFile(walletTV.getText().toString());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
 
             final Button deleteButton = itemView.findViewById(R.id.deleteButton);
             deleteButton.setOnClickListener(view -> deleteWallet(walletTV.getText().toString()));

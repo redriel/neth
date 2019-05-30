@@ -16,12 +16,12 @@
         android:textSize="20dp"/>
 
     <Button
-        android:id="@+id/addressButton"
+        android:id="@+id/infoButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/walletAlias"
         android:layout_alignParentLeft="true"
-        android:text="@string/getAddress"
+        android:text="@string/info"
         android:textSize="12dp"
         style="@style/Base.Widget.AppCompat.Button.Borderless" />
 
@@ -30,18 +30,18 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/walletAlias"
-        android:layout_toRightOf="@+id/addressButton"
+        android:layout_toRightOf="@+id/infoButton"
         android:text="@string/transaction"
         android:textSize="12dp"
         style="@style/Base.Widget.AppCompat.Button.Borderless" />
 
     <Button
-        android:id="@+id/ethBalanceButton"
+        android:id="@+id/uploadDocumentButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/walletAlias"
         android:layout_toRightOf="@+id/transactionButton"
-        android:text="@string/ethBalance"
+        android:text="@string/uploadDocument"
         android:textSize="12dp"
         style="@style/Base.Widget.AppCompat.Button.Borderless" />
 
@@ -50,7 +50,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@id/walletAlias"
-        android:layout_toRightOf="@+id/ethBalanceButton"
+        android:layout_toRightOf="@+id/uploadDocumentButton"
         android:text="@string/delete"
         android:textSize="12dp"
         android:background="#ff6666"

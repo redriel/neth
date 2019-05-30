@@ -20,5 +20,12 @@
     <string name="insertValue">Please insert the desired amount of ether to transfer</string>
     <string name="confirm">Confirm</string>
     <string name="cancel">Cancel</string>
-    <string name="upload">Upload File</string>
+    <string name="upload">Upload</string>
+    <string name="info">Info</string>
+    <string name="uploadDocument">Upload Document</string>
+    <string name="walletAddress">Address</string>
+    <string name="copy">Copy</string>
+    <string name="signUp">Sign Up</string>
+    <string name="insertHash">Write your IPFS hash below</string>
+    <string name="eSKInsert">Write your eSK  below</string>
 </resources>

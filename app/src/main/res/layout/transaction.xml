@@ -16,7 +16,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <EditText
-        android:id="@+id/insertAddressET"
+        android:id="@+id/AddressET"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
@@ -37,10 +37,10 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/insertAddressET" />
+        app:layout_constraintTop_toBottomOf="@+id/AddressET" />
 
     <EditText
-        android:id="@+id/insertValueET"
+        android:id="@+id/ethBalanceET"
         android:layout_width="69dp"
         android:layout_height="45dp"
         android:layout_marginTop="16dp"
@@ -62,7 +62,7 @@
         app:layout_constraintEnd_toStartOf="@+id/cancelBtn"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/insertValueET" />
+        app:layout_constraintTop_toBottomOf="@+id/ethBalanceET" />
 
     <Button
         android:id="@+id/cancelBtn"
@@ -73,6 +73,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/confirmBtn"
-        app:layout_constraintTop_toBottomOf="@+id/insertValueET" />
+        app:layout_constraintTop_toBottomOf="@+id/ethBalanceET" />
 
 </android.support.constraint.ConstraintLayout>
