@@ -25,9 +25,7 @@ import java.math.BigInteger;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -45,13 +43,23 @@ import android.widget.EditText;
 import android.widget.ListView;
 
 /**
- * This app can establish a connection to the Ethereum blockchain, can create an offline wallet as a JSON file and send ether via transaction to a given address.
+ * This app can:
+ * - establish a connection to the Ethereum blockchain
+ * - create an offline wallet as a JSON file
+ * - send ether via transaction to a given address.
+ * - call the SignUpRegistry contract
+ * - show info of a given wallet, such as address and ether balance
+ *
+ * @author Gabriele Lavorato
+ * @version 0.1
  */
 
 public class MainActivity extends AppCompatActivity {
 
     public static final String WALLET_NAME_KEY = "WALLET_NAME_KEY";
     public static final String WALLET_DIRECTORY_KEY = "WALLET_DIRECTORY_KEY";
+
+    //Default settings for contract gas price and gas limit
     public static final BigInteger gasPrice = DefaultGasProvider.GAS_PRICE;
     public static final BigInteger gasLimit = DefaultGasProvider.GAS_LIMIT;
 
@@ -63,9 +71,7 @@ public class MainActivity extends AppCompatActivity {
     private final String infuraEndpoint = "https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e";
     private final String contractAddress = "0xEcB494A8d75a64D4D18e9A659f3fA2b70Eb09324";
     private Web3j web3j;
-    private String walletPath;
     private File walletDirectory;
-    private String walletName;
     private Button connectButton;
     private SharedPreferences sharedPreferences;
     private boolean connection;
@@ -87,14 +93,95 @@ public class MainActivity extends AppCompatActivity {
         listAdapter = new WalletAdapter(MainActivity.this, R.id.walletAlias);
         listView.setAdapter(listAdapter);
 
-        walletPath = getFilesDir().getAbsolutePath();
+        String walletPath = getFilesDir().getAbsolutePath();
         walletDirectory = new File(walletPath);
         sharedPreferences = this.getSharedPreferences("com.example.Neth2", Context.MODE_PRIVATE);
         refreshList();
 
     }
 
-    public void uploadFile(String walletName) throws IOException, CipherException {
+    /**
+     * Setup Security provider that corrects some issues with the BouncyCastle library
+     */
+    private void setupBouncyCastle() {
+        final Provider provider = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
+        if (provider == null) {
+            // Web3j will set up the provider lazily when it's first used.
+            return;
+        }
+        if (provider.getClass().equals(BouncyCastleProvider.class)) {
+            // BC with same package name, shouldn't happen in real life.
+            return;
+        }
+        // Android registers its own BC provider. As it might be outdated and might not include
+        // all needed ciphers, we substitute it with a known BC bundled in the app.
+        // Android's BC has its package rewritten to "com.android.org.bouncycastle" and because
+        // of that it's possible to have another BC implementation loaded in VM.
+        Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME);
+        Security.insertProviderAt(new BouncyCastleProvider(), 1);
+    }
+
+    /**
+     * Establish connection to the Rinkeby testnet via Infura endpoint
+     * @param view: observed view
+     */
+    public void connectToEthNetwork(View view) {
+        web3j = Web3j.build(new HttpService(infuraEndpoint));
+        try {
+            Web3ClientVersion clientVersion = web3j.web3ClientVersion().sendAsync().get();
+            if (!clientVersion.hasError()) {
+                toastAsync("Connected!");
+                connectButton.setText("Connected to Ethereum");
+                connectButton.setBackgroundColor(0xFF7CCC26);
+                connection = true;
+            } else {
+                toastAsync(clientVersion.getError().getMessage());
+            }
+        } catch (Exception e) {
+            toastAsync(e.getMessage());
+        }
+    }
+
+    /**
+     * Create a wallet and stores it on the device
+     * @param view: observed view
+     */
+    public void createWallet(View view) {
+        try {
+            String walletName = WalletUtils.generateFullNewWalletFile(password, walletDirectory);
+            sharedPreferences.edit().putString(WALLET_NAME_KEY, walletName).apply();
+            sharedPreferences.edit().putString(WALLET_DIRECTORY_KEY, walletDirectory.getAbsolutePath()).apply();
+            refreshList();
+
+            toastAsync("Wallet created!");
+        } catch (Exception e) {
+            toastAsync("ERROR:" + e.getMessage());
+        }
+    }
+
+    /**
+     * Send ether from a wallet to another
+     * @param walletName: the wallet of the sender
+     * @param address: the address of the receiver
+     * @param value: the amount of ether sent
+     */
+    public void sendTransaction(String walletName, String address, String value) {
+        try {
+            Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                    "/" + walletName);
+            TransactionReceipt receipt = Transfer.sendFunds(web3j, credentials, address,
+                    new BigDecimal(value), Convert.Unit.ETHER).sendAsync().get();
+            toastAsync("Transaction complete: " + receipt.getTransactionHash());
+        } catch (Exception e) {
+            toastAsync(e.getMessage());
+        }
+    }
+
+    /**
+     * Call the SignUpRegistry contract functions
+     * @param walletName: the wallet calling the contract functions
+     */
+    public void contractCall(String walletName) throws IOException, CipherException {
         if(connection) {
             Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
                     "/" + walletName);
@@ -103,7 +190,9 @@ public class MainActivity extends AppCompatActivity {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             View transactionView = getLayoutInflater().inflate(R.layout.upload, null);
             EditText hashET = transactionView.findViewById(R.id.hashET);
+            hashET.setSelection(hashET.getText().length());
             EditText eSKET = transactionView.findViewById(R.id.eSKET);
+            eSKET.setSelection(eSKET.getText().length());
             Button signUpButton = transactionView.findViewById(R.id.signUpBtn);
             Button uploadButton = transactionView.findViewById(R.id.uploadBtn);
 
@@ -144,112 +233,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * This function create a connection to the Rinkeby testnet via Infura endpoint.
+     * Delete a given wallet
+     * @param walletName: the wallet to delete
      */
-    public void connectToEthNetwork(View view) {
-        web3j = Web3j.build(new HttpService(infuraEndpoint));
-        try {
-            Web3ClientVersion clientVersion = web3j.web3ClientVersion().sendAsync().get();
-            if (!clientVersion.hasError()) {
-                toastAsync("Connected!");
-                connectButton.setText("Connected to Ethereum");
-                connectButton.setBackgroundColor(0xFF7CCC26);
-                connection = true;
-            } else {
-                toastAsync(clientVersion.getError().getMessage());
-            }
-        } catch (Exception e) {
-            toastAsync(e.getMessage());
-        }
-    }
-
-    /**
-     * This function generates a JSON file wallet and stores on the phone physical storage.
-     */
-    public void createWallet(View view) {
-        try {
-            walletName = WalletUtils.generateFullNewWalletFile(password, walletDirectory);
-            sharedPreferences.edit().putString(WALLET_NAME_KEY, walletName).apply();
-            sharedPreferences.edit().putString(WALLET_DIRECTORY_KEY, walletDirectory.getAbsolutePath()).apply();
-            refreshList();
-
-            toastAsync("Wallet created!");
-        } catch (Exception e) {
-            toastAsync("ERROR:" + e.getMessage());
-        }
-    }
-
-    /**
-     * This function accesses the wallet using a password and a path. Then it sends some ether to a fixed address.
-     */
-    public void sendTransaction(String walletName, String address, String value) {
-        try {
-            Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                    "/" + walletName);
-            TransactionReceipt receipt = Transfer.sendFunds(web3j, credentials, address,
-                    new BigDecimal(value), Convert.Unit.ETHER).sendAsync().get();
-            toastAsync("Transaction complete: " + receipt.getTransactionHash());
-        } catch (Exception e) {
-            toastAsync(e.getMessage());
-        }
-    }
-
-    public String getBalance(String address) {
-        // send asynchronous requests to get balance
-        EthGetBalance ethGetBalance = null;
-        try {
-            ethGetBalance = web3j
-                    .ethGetBalance(address, DefaultBlockParameterName.LATEST)
-                    .sendAsync()
-                    .get();
-        } catch (Exception e) {
-            toastAsync(e.getMessage());
-        }
-
-        BigDecimal etherValue = Convert.fromWei(ethGetBalance.getBalance().toString(), Convert.Unit.ETHER);
-        return etherValue.toString();
-    }
-
-    /**
-     * Setup Security provider that corrects some issues with the BouncyCastle library.
-     */
-    private void setupBouncyCastle() {
-        final Provider provider = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
-        if (provider == null) {
-            // Web3j will set up the provider lazily when it's first used.
-            return;
-        }
-        if (provider.getClass().equals(BouncyCastleProvider.class)) {
-            // BC with same package name, shouldn't happen in real life.
-            return;
-        }
-        // Android registers its own BC provider. As it might be outdated and might not include
-        // all needed ciphers, we substitute it with a known BC bundled in the app.
-        // Android's BC has its package rewritten to "com.android.org.bouncycastle" and because
-        // of that it's possible to have another BC implementation loaded in VM.
-        Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME);
-        Security.insertProviderAt(new BouncyCastleProvider(), 1);
-    }
-
-    /**
-     * Toast function to display messages and errors. Mainly used for testing purposes.
-     */
-    public void toastAsync(String message) {
-        runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
-    }
-
-    public void refreshList() {
-        File folder = new File(sharedPreferences.getString(WALLET_DIRECTORY_KEY, ""));
-        if (folder.exists()) {
-            for (File f : folder.listFiles()) {
-                if (!walletList.contains(f.getName()))
-                    walletList.add(f.getName());
-            }
-            if (listAdapter != null)
-                listAdapter.notifyDataSetChanged();
-        }
-    }
-
     public void deleteWallet(final String walletName) {
         AlertDialog alertDialog = new AlertDialog.Builder(this)
                 .setTitle("Delete Wallet")
@@ -257,8 +243,8 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("Yes", (dialog, which) -> {
                     File file = new File(sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
                             "/" + walletName);
-                    if (file.exists()) {
-                        file.delete();
+                    if (file.exists() && file.delete()) {
+                        toastAsync("Wallet deleted");
                     } else {
                         System.err.println(
                                 "I cannot find '" + file + "' ('" + file.getAbsolutePath() + "')");
@@ -271,6 +257,10 @@ public class MainActivity extends AppCompatActivity {
         alertDialog.show();
     }
 
+    /**
+     * Display address and eth balance of a given wallet.
+     * @param walletName: the wallet to display info
+     */
     public void showInfo(final String walletName)  {
         if (connection) {
             Credentials credentials = null;
@@ -307,6 +297,10 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * Show a dialog to acquire transaction info.
+     * @param walletName: the sender of the transaction
+     */
     public void showTransaction(String walletName) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View transactionView = getLayoutInflater().inflate(R.layout.transaction, null);
@@ -314,7 +308,9 @@ public class MainActivity extends AppCompatActivity {
         EditText insertValue = transactionView.findViewById(R.id.ethBalanceET);
         Button confirmButton = transactionView.findViewById(R.id.confirmBtn);
         Button cancelButton = transactionView.findViewById(R.id.cancelBtn);
-        confirmButton.setOnClickListener(view1 -> sendTransaction(walletName, insertAddress.getText().toString(), insertValue.getText().toString()));
+        confirmButton.setOnClickListener(view1 -> {
+                sendTransaction(walletName, insertAddress.getText().toString(), insertValue.getText().toString());
+        });
         cancelButton.setOnClickListener(view1 -> {
             //todo: implement close dialog
         });
@@ -322,6 +318,9 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
+    /**
+     * Inner class to display wallets on the device
+     */
     public class WalletAdapter extends ArrayAdapter<String> {
 
         public WalletAdapter(Context context, int textView) {
@@ -350,7 +349,7 @@ public class MainActivity extends AppCompatActivity {
             final Button uploadDocument = itemView.findViewById(R.id.uploadDocumentButton);
             uploadDocument.setOnClickListener(view -> {
                 try {
-                    uploadFile(walletTV.getText().toString());
+                    contractCall(walletTV.getText().toString());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -367,6 +366,49 @@ public class MainActivity extends AppCompatActivity {
             return walletList.get(position);
         }
 
+    }
+
+    /**
+     * Compute the ehter balance of a given address
+     * @param address: the given address
+     * @return the ether balance
+     */
+    public String getBalance(String address) {
+        // send asynchronous requests to get balance
+        EthGetBalance ethGetBalance = null;
+        try {
+            ethGetBalance = web3j
+                    .ethGetBalance(address, DefaultBlockParameterName.LATEST)
+                    .sendAsync()
+                    .get();
+        } catch (Exception e) {
+            toastAsync(e.getMessage());
+        }
+
+        BigDecimal etherValue = Convert.fromWei(ethGetBalance.getBalance().toString(), Convert.Unit.ETHER);
+        return etherValue.toString();
+    }
+
+    /**
+     * List all the wallets on the device
+     */
+    public void refreshList() {
+        File folder = new File(sharedPreferences.getString(WALLET_DIRECTORY_KEY, ""));
+        if (folder.exists()) {
+            for (File f : folder.listFiles()) {
+                if (!walletList.contains(f.getName()))
+                    walletList.add(f.getName());
+            }
+            if (listAdapter != null)
+                listAdapter.notifyDataSetChanged();
+        }
+    }
+
+    /**
+     * Display messages and errors, mainly used for testing purposes
+     */
+    public void toastAsync(String message) {
+        runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
     }
 
 }

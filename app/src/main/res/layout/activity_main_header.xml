@@ -46,7 +46,6 @@
         android:text="@string/upload"
         android:textSize="20sp"
         android:drawableTop="@drawable/transaction"
-        android:onClick="uploadFile"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/btnCreateWallet"
