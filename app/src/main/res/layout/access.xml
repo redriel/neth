@@ -11,7 +11,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:layout_marginTop="5dp"
-        android:text="@string/set_password"
+        android:text="@string/insertPassword"
         android:textSize="25sp"
         android:textStyle="bold" />
 
@@ -30,6 +30,6 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:background="@color/colorAccent"
-        android:text="@string/set_password"
+        android:text="@string/insertPassword"
         android:textColor="@android:color/white" />
 </LinearLayout>

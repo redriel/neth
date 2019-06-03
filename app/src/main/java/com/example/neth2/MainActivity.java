@@ -5,8 +5,11 @@ import android.widget.Toast;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import org.web3j.crypto.Bip39Wallet;
 import org.web3j.crypto.CipherException;
 import org.web3j.crypto.Credentials;
+import org.web3j.crypto.ECKeyPair;
+import org.web3j.crypto.MnemonicUtils;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
@@ -22,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
@@ -41,6 +45,8 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+
+import static org.web3j.crypto.Hash.sha256;
 
 /**
  * This app can:
@@ -73,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
     private Web3j web3j;
     private File walletDirectory;
     private Button connectButton;
+    private Button cloudButton;
     private SharedPreferences sharedPreferences;
     private boolean connection;
 
@@ -89,6 +96,8 @@ public class MainActivity extends AppCompatActivity {
         listView = findViewById(R.id.listView);
         listView.addHeaderView(listHeader);
         connectButton = findViewById(R.id.btnConnect);
+        cloudButton = findViewById(R.id.btnCloud);
+        cloudButton.setOnClickListener(view -> mnemonicRecovery());
 
         listAdapter = new WalletAdapter(MainActivity.this, R.id.walletAlias);
         listView.setAdapter(listAdapter);
@@ -98,6 +107,61 @@ public class MainActivity extends AppCompatActivity {
         sharedPreferences = this.getSharedPreferences("com.example.Neth2", Context.MODE_PRIVATE);
         refreshList();
 
+    }
+
+    private void mnemonicRecovery(){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View recoveryView = getLayoutInflater().inflate(R.layout.recovery, null);
+        EditText word1 = recoveryView.findViewById(R.id.word1);
+        EditText word2 = recoveryView.findViewById(R.id.word2);
+        EditText word3 = recoveryView.findViewById(R.id.word3);
+        EditText word4 = recoveryView.findViewById(R.id.word4);
+        EditText word5 = recoveryView.findViewById(R.id.word5);
+        EditText word6 = recoveryView.findViewById(R.id.word6);
+        EditText word7 = recoveryView.findViewById(R.id.word7);
+        EditText word8 = recoveryView.findViewById(R.id.word8);
+        EditText word9 = recoveryView.findViewById(R.id.word9);
+        EditText word10 = recoveryView.findViewById(R.id.word10);
+        EditText word11= recoveryView.findViewById(R.id.word11);
+        EditText word12 = recoveryView.findViewById(R.id.word12);
+        EditText array[] = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
+        Button pasteButton = recoveryView.findViewById(R.id.pasteButton);
+        Button recoveryButton = recoveryView.findViewById(R.id.recoveryButton);
+
+        pasteButton.setOnClickListener(view1 -> {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clipData = clipboard.getPrimaryClip();
+            String sclip = clipData.toString();
+            String mnemonic = sclip.substring(sclip.indexOf("T:") + 2, sclip.lastIndexOf("}") - 2);
+            String[] arr = mnemonic.split(" ");
+            for(int i = 0; i<12; i++){
+                array[i].setText(arr[i]);
+            }
+        });
+
+        recoveryButton.setOnClickListener(view1 -> {
+            String mnemonic = word1.getText().toString() + " " + word2.getText().toString() + " " + word3.getText().toString() + " " +
+                    word4.getText().toString() + " " + word5.getText().toString() + " " + word6.getText().toString() + " " +
+                    word7.getText().toString() + " " + word8.getText().toString() + " " + word9.getText().toString() + " " +
+                    word10.getText().toString() + " " + word11.getText().toString() + " " + word12.getText().toString();
+            byte[] seed = MnemonicUtils.generateSeed(mnemonic, password);
+            ECKeyPair privateKey = ECKeyPair.create(sha256(seed));
+            System.out.println(privateKey);
+            try {
+                String walletName = WalletUtils.generateWalletFile(password, privateKey, walletDirectory, false);
+                toastAsync("Wallet created!");
+                System.out.println(walletName); //todo remove this line
+                System.out.println(mnemonic); //todo remove this line
+            } catch (CipherException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            refreshList();
+        });
+
+        builder.setView(recoveryView);
+        builder.show();
     }
 
     /**
@@ -148,12 +212,48 @@ public class MainActivity extends AppCompatActivity {
      */
     public void createWallet(View view) {
         try {
-            String walletName = WalletUtils.generateFullNewWalletFile(password, walletDirectory);
+            String walletName = WalletUtils.generateBip39Wallet(password, walletDirectory).toString();
             sharedPreferences.edit().putString(WALLET_NAME_KEY, walletName).apply();
             sharedPreferences.edit().putString(WALLET_DIRECTORY_KEY, walletDirectory.getAbsolutePath()).apply();
             refreshList();
-
             toastAsync("Wallet created!");
+            String mnemonic = walletName.substring(walletName.indexOf("mnemonic='")+10, walletName.indexOf("'}"));
+            System.out.println(walletName); //todo remove this line
+            System.out.println(mnemonic); //todo remove this line
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View recoveryView = getLayoutInflater().inflate(R.layout.mnemonic_phrase, null);
+        EditText word1 = recoveryView.findViewById(R.id.word1);
+        EditText word2 = recoveryView.findViewById(R.id.word2);
+        EditText word3 = recoveryView.findViewById(R.id.word3);
+        EditText word4 = recoveryView.findViewById(R.id.word4);
+        EditText word5 = recoveryView.findViewById(R.id.word5);
+        EditText word6 = recoveryView.findViewById(R.id.word6);
+        EditText word7 = recoveryView.findViewById(R.id.word7);
+        EditText word8 = recoveryView.findViewById(R.id.word8);
+        EditText word9 = recoveryView.findViewById(R.id.word9);
+        EditText word10 = recoveryView.findViewById(R.id.word10);
+        EditText word11 = recoveryView.findViewById(R.id.word11);
+        EditText word12 = recoveryView.findViewById(R.id.word12);
+        EditText array[] = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
+        Button okButton = recoveryView.findViewById(R.id.okButton);
+        Button copyButton = recoveryView.findViewById(R.id.copyButton);
+        String[] arr = mnemonic.split(" ");
+        for(int i = 0; i<12; i++){
+            array[i].setText(arr[i]);
+        }
+            builder.setView(recoveryView);
+        final AlertDialog dialog = builder.show();
+            builder.show();
+        okButton.setOnClickListener(view1 -> {
+            dialog.dismiss();
+        });
+        copyButton.setOnClickListener(view1 -> {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText("", mnemonic);
+            clipboard.setPrimaryClip(clip);
+            toastAsync("Address has been copied to clipboard.");
+        });
         } catch (Exception e) {
             toastAsync("ERROR:" + e.getMessage());
         }
@@ -263,6 +363,7 @@ public class MainActivity extends AppCompatActivity {
      */
     public void showInfo(final String walletName)  {
         if (connection) {
+
             Credentials credentials = null;
             try {
                 credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
