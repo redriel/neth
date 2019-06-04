@@ -107,7 +107,7 @@ public class MainActivity extends AppCompatActivity {
         walletDirectory = new File(walletPath);
         sharedPreferences = this.getSharedPreferences("com.example.Neth2", Context.MODE_PRIVATE);
         refreshList();
-
+        int test = 0;
     }
 
     private void mnemonicRecovery(){
