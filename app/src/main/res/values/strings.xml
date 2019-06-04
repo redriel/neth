@@ -28,4 +28,13 @@
     <string name="signUp">Sign Up</string>
     <string name="insertHash">Write your IPFS hash below</string>
     <string name="eSKInsert">Write your eSK  below</string>
+    <string name="insertPassword">Insert Password</string>
+    <string name="upload_Wallet">Upload Wallet</string>
+    <string name="downloadWallet">Download Wallet</string>
+    <string name="recover">Recover Wallet</string>
+    <string name="insertPassphrase">Insert the mnemonic phrase</string>
+    <string name="paste">Paste from clipboard</string>
+    <string name="recoverWallet">Recover</string>
+    <string name="memorizePasspharse">Memorize this passphrase</string>
+    <string name="done">Done</string>
 </resources>
