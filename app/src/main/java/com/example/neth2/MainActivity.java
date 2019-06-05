@@ -5,7 +5,6 @@ import android.widget.Toast;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import org.web3j.crypto.Bip39Wallet;
 import org.web3j.crypto.CipherException;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.ECKeyPair;
@@ -25,7 +24,6 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.security.SecureRandom;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
@@ -107,9 +105,11 @@ public class MainActivity extends AppCompatActivity {
         walletDirectory = new File(walletPath);
         sharedPreferences = this.getSharedPreferences("com.example.Neth2", Context.MODE_PRIVATE);
         refreshList();
-        int test = 0;
     }
 
+    /**
+     * Recover an HD wallet from a 12-words mnemonic phrase
+     */
     private void mnemonicRecovery(){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View recoveryView = getLayoutInflater().inflate(R.layout.recovery, null);
@@ -123,19 +123,19 @@ public class MainActivity extends AppCompatActivity {
         EditText word8 = recoveryView.findViewById(R.id.word8);
         EditText word9 = recoveryView.findViewById(R.id.word9);
         EditText word10 = recoveryView.findViewById(R.id.word10);
-        EditText word11= recoveryView.findViewById(R.id.word11);
+        EditText word11 = recoveryView.findViewById(R.id.word11);
         EditText word12 = recoveryView.findViewById(R.id.word12);
-        EditText array[] = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
+        EditText[] array = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
         Button pasteButton = recoveryView.findViewById(R.id.pasteButton);
         Button recoveryButton = recoveryView.findViewById(R.id.recoveryButton);
 
         pasteButton.setOnClickListener(view1 -> {
             ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            ClipData clipData = clipboard.getPrimaryClip();
-            String sclip = clipData.toString();
-            String mnemonic = sclip.substring(sclip.indexOf("T:") + 2, sclip.lastIndexOf("}") - 2);
+            //ClipData clipData = clipboard.getPrimaryClip();
+            //String sclip = clipData.toString();
+            String mnemonic = clipboard.getText().toString();//sclip.substring(sclip.indexOf("T:") + 2, sclip.lastIndexOf("}") - 2);
             String[] arr = mnemonic.split(" ");
-            for(int i = 0; i<12; i++){
+            for(int i = 0; i < 12; i++){
                 array[i].setText(arr[i]);
             }
         });
@@ -150,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
             System.out.println(privateKey);
             try {
                 String walletName = WalletUtils.generateWalletFile(password, privateKey, walletDirectory, false);
-                toastAsync("Wallet created!");
+                toastAsync("Wallet recovered!");
                 System.out.println(walletName); //todo remove this line
                 System.out.println(mnemonic); //todo remove this line
             } catch (CipherException e) {
@@ -222,39 +222,43 @@ public class MainActivity extends AppCompatActivity {
             System.out.println(walletName); //todo remove this line
             System.out.println(mnemonic); //todo remove this line
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View recoveryView = getLayoutInflater().inflate(R.layout.mnemonic_phrase, null);
-        EditText word1 = recoveryView.findViewById(R.id.word1);
-        EditText word2 = recoveryView.findViewById(R.id.word2);
-        EditText word3 = recoveryView.findViewById(R.id.word3);
-        EditText word4 = recoveryView.findViewById(R.id.word4);
-        EditText word5 = recoveryView.findViewById(R.id.word5);
-        EditText word6 = recoveryView.findViewById(R.id.word6);
-        EditText word7 = recoveryView.findViewById(R.id.word7);
-        EditText word8 = recoveryView.findViewById(R.id.word8);
-        EditText word9 = recoveryView.findViewById(R.id.word9);
-        EditText word10 = recoveryView.findViewById(R.id.word10);
-        EditText word11 = recoveryView.findViewById(R.id.word11);
-        EditText word12 = recoveryView.findViewById(R.id.word12);
-        EditText array[] = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
-        Button okButton = recoveryView.findViewById(R.id.okButton);
-        Button copyButton = recoveryView.findViewById(R.id.copyButton);
-        String[] arr = mnemonic.split(" ");
-        for(int i = 0; i<12; i++){
-            array[i].setText(arr[i]);
-        }
-            builder.setView(recoveryView);
-        final AlertDialog dialog = builder.show();
-            builder.show();
-        okButton.setOnClickListener(view1 -> {
-            dialog.dismiss();
-        });
-        copyButton.setOnClickListener(view1 -> {
-            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            ClipData clip = ClipData.newPlainText("", mnemonic);
-            clipboard.setPrimaryClip(clip);
-            toastAsync("Address has been copied to clipboard.");
-        });
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            View mnemonicView = getLayoutInflater().inflate(R.layout.mnemonic_phrase, null);
+            EditText word1 = mnemonicView.findViewById(R.id.word1);
+            EditText word2 = mnemonicView.findViewById(R.id.word2);
+            EditText word3 = mnemonicView.findViewById(R.id.word3);
+            EditText word4 = mnemonicView.findViewById(R.id.word4);
+            EditText word5 = mnemonicView.findViewById(R.id.word5);
+            EditText word6 = mnemonicView.findViewById(R.id.word6);
+            EditText word7 = mnemonicView.findViewById(R.id.word7);
+            EditText word8 = mnemonicView.findViewById(R.id.word8);
+            EditText word9 = mnemonicView.findViewById(R.id.word9);
+            EditText word10 = mnemonicView.findViewById(R.id.word10);
+            EditText word11 = mnemonicView.findViewById(R.id.word11);
+            EditText word12 = mnemonicView.findViewById(R.id.word12);
+            EditText[] array = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
+            Button okButton = mnemonicView.findViewById(R.id.okButton);
+            Button copyButton = mnemonicView.findViewById(R.id.copyButton);
+            String[] arr = mnemonic.split(" ");
+
+            for(int i = 0; i<12; i++){
+                array[i].setText(arr[i]);
+            }
+
+            builder.setView(mnemonicView);
+            final AlertDialog dialog = builder.show();
+            //builder.show();
+
+            okButton.setOnClickListener(view1 -> {
+                dialog.dismiss();
+            });
+
+            copyButton.setOnClickListener(view1 -> {
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("", mnemonic);
+                clipboard.setPrimaryClip(clip);
+                toastAsync("Mnemonic phrase copied to clipboard.");
+            });
         } catch (Exception e) {
             toastAsync("ERROR:" + e.getMessage());
         }
@@ -408,16 +412,23 @@ public class MainActivity extends AppCompatActivity {
         View transactionView = getLayoutInflater().inflate(R.layout.transaction, null);
         EditText insertAddress = transactionView.findViewById(R.id.AddressET);
         EditText insertValue = transactionView.findViewById(R.id.ethBalanceET);
+        Button pasteButton = transactionView.findViewById(R.id.pasteButton);
         Button confirmButton = transactionView.findViewById(R.id.confirmBtn);
         Button cancelButton = transactionView.findViewById(R.id.cancelBtn);
+
+        builder.setView(transactionView);
+        final AlertDialog dialog = builder.show();
+
+        pasteButton.setOnClickListener(view1 -> {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            insertAddress.setText(clipboard.getText());
+        });
         confirmButton.setOnClickListener(view1 -> {
                 sendTransaction(walletName, insertAddress.getText().toString(), insertValue.getText().toString());
         });
         cancelButton.setOnClickListener(view1 -> {
-            //todo: implement close dialog
+            dialog.dismiss();
         });
-        builder.setView(transactionView);
-        builder.show();
     }
 
     /**

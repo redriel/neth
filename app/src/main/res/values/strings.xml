@@ -13,7 +13,7 @@
     <string name="getBalance">Your Eth Balance</string>
     <string name="delete">Delete</string>
     <string name="transaction">Transaction</string>
-    <string name="ethBalance">Eth Balance</string>
+    <string name="ethBalance">Ether</string>
     <string name="transactionHistory">Transaction History</string>
     <string name="transactions">Transactions</string>
     <string name="insertAddress">Please insert the receiver address below</string>
@@ -37,4 +37,5 @@
     <string name="recoverWallet">Recover</string>
     <string name="memorizePasspharse">Memorize this passphrase</string>
     <string name="done">Done</string>
+    <string name="pasteAddress">Paste</string>
 </resources>

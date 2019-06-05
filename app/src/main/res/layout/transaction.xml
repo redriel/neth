@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:paddingBottom="10dp">
 
     <TextView
         android:id="@+id/insertAddressTV"
@@ -22,10 +24,9 @@
         android:layout_marginTop="16dp"
         android:ems="10"
         android:inputType="textPersonName"
-        android:text="0x2cb6e9fb2921b8cc5920ad42fb2f00dfe5681503"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/pasteButton"
         app:layout_constraintTop_toBottomOf="@+id/insertAddressTV" />
 
     <TextView
@@ -57,11 +58,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
         android:text="@string/confirm"
-        app:layout_constraintEnd_toStartOf="@+id/cancelBtn"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/cancelBtn"
         app:layout_constraintTop_toBottomOf="@+id/ethBalanceET" />
 
     <Button
@@ -70,9 +70,20 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="@string/cancel"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/confirmBtn"
         app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/confirmBtn"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/ethBalanceET" />
+
+    <Button
+        android:id="@+id/pasteButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/pasteAddress"
+        app:layout_constraintEnd_toStartOf="@+id/AddressET"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/insertAddressTV" />
 
 </android.support.constraint.ConstraintLayout>
