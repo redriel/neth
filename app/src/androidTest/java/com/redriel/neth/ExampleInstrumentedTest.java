@@ -1,4 +1,4 @@
-package com.example.neth2;
+package com.redriel.neth;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

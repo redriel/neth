@@ -1,4 +1,4 @@
-package com.example.neth2;
+package com.redriel.neth;
 
 import android.widget.TextView;
 import android.widget.Toast;
@@ -73,12 +73,12 @@ public class MainActivity extends AppCompatActivity {
     public WalletAdapter listAdapter;
 
     private final String password = "medium";
-    private final String infuraEndpoint = "https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e";
-    private final String contractAddress = "0xEcB494A8d75a64D4D18e9A659f3fA2b70Eb09324";
+    private final String infuraEndpoint = "https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e"; //todo: convert in local
+    private final String contractAddress = "0xEcB494A8d75a64D4D18e9A659f3fA2b70Eb09324"; //todo: convert in local
     private Web3j web3j;
     private File walletDirectory;
     private Button connectButton;
-    private Button cloudButton;
+    private Button cloudButton; //todo: convert in local + change name
     private SharedPreferences sharedPreferences;
     private boolean connection;
 
@@ -103,13 +103,14 @@ public class MainActivity extends AppCompatActivity {
 
         String walletPath = getFilesDir().getAbsolutePath();
         walletDirectory = new File(walletPath);
-        sharedPreferences = this.getSharedPreferences("com.example.Neth2", Context.MODE_PRIVATE);
+        sharedPreferences = this.getSharedPreferences("com.redriel.neth", Context.MODE_PRIVATE);
         refreshList();
     }
 
     /**
      * Recover an HD wallet from a 12-words mnemonic phrase
      */
+    //todo: separate logic from view
     private void mnemonicRecovery(){
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View recoveryView = getLayoutInflater().inflate(R.layout.recovery, null);
@@ -151,8 +152,6 @@ public class MainActivity extends AppCompatActivity {
             try {
                 String walletName = WalletUtils.generateWalletFile(password, privateKey, walletDirectory, false);
                 toastAsync("Wallet recovered!");
-                System.out.println(walletName); //todo remove this line
-                System.out.println(mnemonic); //todo remove this line
             } catch (CipherException e) {
                 e.printStackTrace();
             } catch (IOException e) {
@@ -211,6 +210,7 @@ public class MainActivity extends AppCompatActivity {
      * Create a wallet and stores it on the device
      * @param view: observed view
      */
+    //todo: separate logic from view
     public void createWallet(View view) {
         try {
             String walletName = WalletUtils.generateBip39Wallet(password, walletDirectory).toString();
@@ -219,8 +219,6 @@ public class MainActivity extends AppCompatActivity {
             refreshList();
             toastAsync("Wallet created!");
             String mnemonic = walletName.substring(walletName.indexOf("mnemonic='")+10, walletName.indexOf("'}"));
-            System.out.println(walletName); //todo remove this line
-            System.out.println(mnemonic); //todo remove this line
 
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             View mnemonicView = getLayoutInflater().inflate(R.layout.mnemonic_phrase, null);
@@ -286,6 +284,7 @@ public class MainActivity extends AppCompatActivity {
      * Call the SignUpRegistry contract functions
      * @param walletName: the wallet calling the contract functions
      */
+    //todo: separate logic from view
     public void contractCall(String walletName) throws IOException, CipherException {
         if(connection) {
             Credentials credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
@@ -368,7 +367,6 @@ public class MainActivity extends AppCompatActivity {
      */
     public void showInfo(final String walletName)  {
         if (connection) {
-
             Credentials credentials = null;
             try {
                 credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +

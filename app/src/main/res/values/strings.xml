@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Neth2</string>
+    <string name="app_name">Neth - Android Ethereum Wallet Manager</string>
     <string name="connect">Connect to Ethereum</string>
     <string name="clientName">Waiting for connection</string>
     <string name="createWallet">Create Wallet</string>
@@ -38,4 +38,5 @@
     <string name="memorizePasspharse">Memorize this passphrase</string>
     <string name="done">Done</string>
     <string name="pasteAddress">Paste</string>
+    <string name="contracts">Contracts</string>
 </resources>

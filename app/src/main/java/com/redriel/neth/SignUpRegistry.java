@@ -1,4 +1,4 @@
-package com.example.neth2;
+package com.redriel.neth;
 
 import java.math.BigInteger;
 import java.util.Arrays;

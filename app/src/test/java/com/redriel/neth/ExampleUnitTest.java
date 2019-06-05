@@ -1,4 +1,4 @@
-package com.example.neth2;
+package com.redriel.neth;
 
 import org.junit.Test;
 
