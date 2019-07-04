@@ -1,4 +1,4 @@
-package com.redriel.neth;
+package com.blinc.neth;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

@@ -1,5 +1,6 @@
-package com.redriel.neth;
+package com.blinc.neth;
 
+import android.graphics.Color;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -61,6 +62,7 @@ import static org.web3j.crypto.Hash.sha256;
 
 public class MainActivity extends AppCompatActivity {
 
+    //todo: rethink the usage of SharedPreferences. WALLET_NAME_KEY is useless right now
     public static final String WALLET_NAME_KEY = "WALLET_NAME_KEY";
     public static final String WALLET_DIRECTORY_KEY = "WALLET_DIRECTORY_KEY";
 
@@ -72,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
     public ArrayList<String> walletList;
     public WalletAdapter listAdapter;
 
-    private final String password = "medium";
+    private String password;
     private final String infuraEndpoint = "https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e"; //todo: convert in local
     private final String contractAddress = "0xEcB494A8d75a64D4D18e9A659f3fA2b70Eb09324"; //todo: convert in local
     private Web3j web3j;
@@ -103,8 +105,72 @@ public class MainActivity extends AppCompatActivity {
 
         String walletPath = getFilesDir().getAbsolutePath();
         walletDirectory = new File(walletPath);
-        sharedPreferences = this.getSharedPreferences("com.redriel.neth", Context.MODE_PRIVATE);
+        sharedPreferences = this.getSharedPreferences("com.blinc.neth", Context.MODE_PRIVATE);
         refreshList();
+    }
+
+    private boolean isLocked(String walletName) {
+        return (sharedPreferences.getInt("lock" + walletName, 0) == 0);
+    }
+
+    private void insertPassword(String walletName, String password) {
+        String editWalletName = walletName.substring(walletName.indexOf("filename='") + 10, walletName.indexOf("',"));
+        sharedPreferences.edit().putString(editWalletName, password).apply();
+        System.out.println("walletName:" +walletName +
+                "\nEnterd password: " + password + "\n Saved password: " +  sharedPreferences.getString(walletName, ""));
+    }
+
+    private boolean checkPassword(String walletName, String password) {
+        System.out.println("walletName:" +walletName +
+                "\nEnterd password: " + password + "\n Saved password: " +  sharedPreferences.getString(walletName, ""));
+        return password.equals(sharedPreferences.getString(walletName, ""));
+    }
+
+    private void unlockWallet(String walletName){
+        sharedPreferences.edit().putInt("lock" + walletName, 1).apply();
+    }
+
+    private void unlockWalletDialog(String walletName){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View passwordView = getLayoutInflater().inflate(R.layout.unlock_wallet, null);
+        EditText passwordET = passwordView.findViewById(R.id.etPassword);
+        Button insertPassword = passwordView.findViewById(R.id.insertPassword);
+
+        builder.setView(passwordView);
+        final AlertDialog dialog = builder.show();
+
+        insertPassword.setOnClickListener(view1 -> {
+            if(checkPassword(walletName, passwordET.getText().toString())) {
+                unlockWallet(walletName);
+
+                toastAsync("Wallet unlocked!");
+            }
+            else {
+                toastAsync("Wrong password");
+            }
+            dialog.dismiss();
+        });
+    }
+
+    private void lockWallet(String walletName){
+        sharedPreferences.edit().putInt("lock" + walletName, 0).apply();
+    }
+
+    public void fooPassword(View view){
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View passwordView = getLayoutInflater().inflate(R.layout.password, null);
+        EditText passwordET = passwordView.findViewById(R.id.etPassword);
+        Button insertPassword = passwordView.findViewById(R.id.insertPassword);
+
+        builder.setView(passwordView);
+        final AlertDialog dialog = builder.show();
+
+        insertPassword.setOnClickListener(view1 -> {
+            password = passwordET.getText().toString();
+            createWallet(password);
+            dialog.dismiss();
+        });
     }
 
     /**
@@ -208,19 +274,21 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Create a wallet and stores it on the device
-     * @param view: observed view
+     * @param password: the entered password
      */
     //todo: separate logic from view
-    public void createWallet(View view) {
+    public void createWallet(String password) {
         try {
             String walletName = WalletUtils.generateBip39Wallet(password, walletDirectory).toString();
             sharedPreferences.edit().putString(WALLET_NAME_KEY, walletName).apply();
             sharedPreferences.edit().putString(WALLET_DIRECTORY_KEY, walletDirectory.getAbsolutePath()).apply();
+            insertPassword(walletName, password);
+            lockWallet(walletName);
             refreshList();
             toastAsync("Wallet created!");
-            String mnemonic = walletName.substring(walletName.indexOf("mnemonic='")+10, walletName.indexOf("'}"));
+            String mnemonic = walletName.substring(walletName.indexOf("mnemonic='") + 10, walletName.indexOf("'}"));
 
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            AlertDialog.Builder builder2 = new AlertDialog.Builder(this);
             View mnemonicView = getLayoutInflater().inflate(R.layout.mnemonic_phrase, null);
             EditText word1 = mnemonicView.findViewById(R.id.word1);
             EditText word2 = mnemonicView.findViewById(R.id.word2);
@@ -239,16 +307,19 @@ public class MainActivity extends AppCompatActivity {
             Button copyButton = mnemonicView.findViewById(R.id.copyButton);
             String[] arr = mnemonic.split(" ");
 
-            for(int i = 0; i<12; i++){
+            for (int i = 0; i < 12; i++) {
                 array[i].setText(arr[i]);
             }
 
-            builder.setView(mnemonicView);
-            final AlertDialog dialog = builder.show();
+            //AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder2.setView(mnemonicView);
+            //final AlertDialog
+
+            final AlertDialog dialog2 = builder2.show();
             //builder.show();
 
             okButton.setOnClickListener(view1 -> {
-                dialog.dismiss();
+                dialog2.dismiss();
             });
 
             copyButton.setOnClickListener(view1 -> {
@@ -366,10 +437,19 @@ public class MainActivity extends AppCompatActivity {
      * @param walletName: the wallet to display info
      */
     public void showInfo(final String walletName)  {
+        if(isLocked(walletName)) {
+            AlertDialog alertDialog = new AlertDialog.Builder(this)
+                    .setTitle("Error")
+                    .setMessage("Unlock the wallet")
+                    .create();
+            alertDialog.show();
+            return;
+        }
+
         if (connection) {
             Credentials credentials = null;
             try {
-                credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                credentials = WalletUtils.loadCredentials(sharedPreferences.getString(walletName, ""), sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
                         "/" + walletName);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -450,6 +530,14 @@ public class MainActivity extends AppCompatActivity {
 
             final TextView walletTV = itemView.findViewById(R.id.walletAlias);
             walletTV.setText(walletList.get(position));
+
+            final Button lock = itemView.findViewById(R.id.unlockButton);
+            lock.setOnClickListener(view -> {
+                unlockWalletDialog(walletTV.getText().toString());
+                if(!isLocked(walletTV.getText().toString())){
+                    walletTV.setBackgroundColor(0xFF7CCC26);
+                }
+            });
 
             final Button address = itemView.findViewById(R.id.infoButton);
             address.setOnClickListener(view -> showInfo(walletTV.getText().toString()));

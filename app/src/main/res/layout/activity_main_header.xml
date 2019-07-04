@@ -28,7 +28,7 @@
         android:layout_height="100dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:onClick="createWallet"
+        android:onClick="fooPassword"
         android:text="@string/createWallet"
         android:textSize="20sp"
         android:drawableStart="@drawable/ic_action_name"

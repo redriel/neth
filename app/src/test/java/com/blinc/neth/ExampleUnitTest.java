@@ -1,4 +1,4 @@
-package com.redriel.neth;
+package com.blinc.neth;
 
 import org.junit.Test;
 
