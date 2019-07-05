@@ -1,6 +1,8 @@
 package com.blinc.neth;
 
-import android.graphics.Color;
+import android.content.Intent;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,8 +25,10 @@ import org.web3j.utils.Convert;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.security.GeneralSecurityException;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
@@ -45,6 +49,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 
+import com.tozny.crypto.android.AesCbcWithIntegrity;
+
+import static com.tozny.crypto.android.AesCbcWithIntegrity.generateKeyFromPassword;
+import static com.tozny.crypto.android.AesCbcWithIntegrity.generateSalt;
+import static com.tozny.crypto.android.AesCbcWithIntegrity.saltString;
 import static org.web3j.crypto.Hash.sha256;
 
 /**
@@ -74,6 +83,8 @@ public class MainActivity extends AppCompatActivity {
     public ArrayList<String> walletList;
     public WalletAdapter listAdapter;
 
+    private static AesCbcWithIntegrity.SecretKeys secretKey = null;
+
     private String password;
     private final String infuraEndpoint = "https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e"; //todo: convert in local
     private final String contractAddress = "0xEcB494A8d75a64D4D18e9A659f3fA2b70Eb09324"; //todo: convert in local
@@ -81,7 +92,8 @@ public class MainActivity extends AppCompatActivity {
     private File walletDirectory;
     private Button connectButton;
     private Button cloudButton; //todo: convert in local + change name
-    private SharedPreferences sharedPreferences;
+    private String address;
+    private static SharedPreferences sharedPreferences;
     private boolean connection;
 
     @Override
@@ -106,7 +118,63 @@ public class MainActivity extends AppCompatActivity {
         String walletPath = getFilesDir().getAbsolutePath();
         walletDirectory = new File(walletPath);
         sharedPreferences = this.getSharedPreferences("com.blinc.neth", Context.MODE_PRIVATE);
+        Intent intent = new Intent(this, ExitService.class);
+        startService(intent);
+        securitySetting();
         refreshList();
+    }
+
+    public static void lockAll() {
+        File folder = new File(sharedPreferences.getString(WALLET_DIRECTORY_KEY, ""));
+        if (folder.exists()) {
+            int i = 0;
+            for (File f : folder.listFiles()) {
+                System.out.println("wallet " + i + " has filename " + f.getName() + "\n");
+                lockWallet(f.getName());
+            }
+        }
+    }
+
+    private void securitySetting () {
+        WifiManager manager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        WifiInfo info = manager.getConnectionInfo();
+        address = info.getMacAddress();
+        String test = "this password is secure";
+        try {
+
+            String salt = saltString(generateSalt());
+            secretKey = generateKeyFromPassword(test, salt);
+        } catch (GeneralSecurityException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private String encryptString(String string) {
+        AesCbcWithIntegrity.CipherTextIvMac cipherTextIvMac = null;
+        try {
+            cipherTextIvMac = AesCbcWithIntegrity.encrypt(string, secretKey);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (GeneralSecurityException e) {
+            e.printStackTrace();
+        }
+        //store or send to server
+        return cipherTextIvMac.toString();
+    }
+
+    private String decryptString(String cipherTextString) {
+        //Use the constructor to re-create the CipherTextIvMac class from the string:
+        AesCbcWithIntegrity.CipherTextIvMac cipherTextIvMac = new AesCbcWithIntegrity.CipherTextIvMac(cipherTextString);
+        String plainText = null;
+        try {
+            plainText = AesCbcWithIntegrity.decryptString(cipherTextIvMac, secretKey);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (GeneralSecurityException e) {
+            e.printStackTrace();
+        }
+        return plainText;
     }
 
     private boolean isLocked(String walletName) {
@@ -115,15 +183,17 @@ public class MainActivity extends AppCompatActivity {
 
     private void insertPassword(String walletName, String password) {
         String editWalletName = walletName.substring(walletName.indexOf("filename='") + 10, walletName.indexOf("',"));
-        sharedPreferences.edit().putString(editWalletName, password).apply();
+        String encryptedPassword = encryptString(password);
+        sharedPreferences.edit().putString(editWalletName, encryptedPassword).apply();
         System.out.println("walletName:" +walletName +
                 "\nEnterd password: " + password + "\n Saved password: " +  sharedPreferences.getString(walletName, ""));
     }
 
     private boolean checkPassword(String walletName, String password) {
         System.out.println("walletName:" +walletName +
-                "\nEnterd password: " + password + "\n Saved password: " +  sharedPreferences.getString(walletName, ""));
-        return password.equals(sharedPreferences.getString(walletName, ""));
+                "\nEnterd password: " + password + "\n Saved password: " +  decryptString(sharedPreferences.getString(walletName, "")));
+
+        return password.equals(decryptString(sharedPreferences.getString(walletName, "")));
     }
 
     private void unlockWallet(String walletName){
@@ -152,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void lockWallet(String walletName){
+    private static void lockWallet(String walletName){
         sharedPreferences.edit().putInt("lock" + walletName, 0).apply();
     }
 
@@ -280,7 +350,7 @@ public class MainActivity extends AppCompatActivity {
     public void createWallet(String password) {
         try {
             String walletName = WalletUtils.generateBip39Wallet(password, walletDirectory).toString();
-            sharedPreferences.edit().putString(WALLET_NAME_KEY, walletName).apply();
+            sharedPreferences.edit().putString(WALLET_NAME_KEY, walletName).apply(); //todo: remove the mnemonic phrase included in the name 
             sharedPreferences.edit().putString(WALLET_DIRECTORY_KEY, walletDirectory.getAbsolutePath()).apply();
             insertPassword(walletName, password);
             lockWallet(walletName);
@@ -418,6 +488,8 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("Yes", (dialog, which) -> {
                     File file = new File(sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
                             "/" + walletName);
+                    SharedPreferences.Editor ed = sharedPreferences.edit();
+                    ed.remove(walletName).apply();
                     if (file.exists() && file.delete()) {
                         toastAsync("Wallet deleted");
                     } else {

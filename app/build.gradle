@@ -36,4 +36,5 @@ dependencies {
     implementation 'com.github.multiformats:java-multiaddr:v1.3.1' //This line is added by me
     implementation 'com.github.multiformats:java-multihash:v1.2.1'
     implementation 'org.jetbrains:annotations:15.0'//This line is added by me
+    implementation 'com.github.tozny:java-aes-crypto:1.1.0'
 }
