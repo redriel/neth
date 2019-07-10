@@ -32,6 +32,7 @@ import java.security.GeneralSecurityException;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 import android.content.ClipData;
@@ -95,6 +96,8 @@ public class MainActivity extends AppCompatActivity {
     private String address;
     private static SharedPreferences sharedPreferences;
     private boolean connection;
+    private Credentials credentials = null;
+    HashMap<String, Credentials> accounts = new HashMap<String, Credentials>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -201,6 +204,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void unlockWalletDialog(String walletName){
+        if(accounts.get(walletName) != null){
+            toastAsync("Already unlocked");
+            return;
+        }
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View passwordView = getLayoutInflater().inflate(R.layout.unlock_wallet, null);
         EditText passwordET = passwordView.findViewById(R.id.etPassword);
@@ -210,15 +217,27 @@ public class MainActivity extends AppCompatActivity {
         final AlertDialog dialog = builder.show();
 
         insertPassword.setOnClickListener(view1 -> {
-            if(checkPassword(walletName, passwordET.getText().toString())) {
+                password = passwordET.getText().toString();
                 unlockWallet(walletName);
+                credentials = null;
+                try {
+                    credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                            "/" + walletName);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (CipherException e) {
+                    e.printStackTrace();
+                }
+                if(credentials != null) {
+                    toastAsync("Unlocked!");
+                    accounts.put(walletName, credentials);
+                    dialog.dismiss();
+                }
+                else {
+                    toastAsync("Wrong password dude!");
+                    dialog.dismiss();
+                }
 
-                toastAsync("Wallet unlocked!");
-            }
-            else {
-                toastAsync("Wrong password");
-            }
-            dialog.dismiss();
         });
     }
 
@@ -350,7 +369,7 @@ public class MainActivity extends AppCompatActivity {
     public void createWallet(String password) {
         try {
             String walletName = WalletUtils.generateBip39Wallet(password, walletDirectory).toString();
-            sharedPreferences.edit().putString(WALLET_NAME_KEY, walletName).apply(); //todo: remove the mnemonic phrase included in the name 
+            sharedPreferences.edit().putString(WALLET_NAME_KEY, walletName).apply(); //todo: remove the mnemonic phrase included in the name
             sharedPreferences.edit().putString(WALLET_DIRECTORY_KEY, walletDirectory.getAbsolutePath()).apply();
             insertPassword(walletName, password);
             lockWallet(walletName);
@@ -509,7 +528,7 @@ public class MainActivity extends AppCompatActivity {
      * @param walletName: the wallet to display info
      */
     public void showInfo(final String walletName)  {
-        if(isLocked(walletName)) {
+        if(accounts.get(walletName) == null) {
             AlertDialog alertDialog = new AlertDialog.Builder(this)
                     .setTitle("Error")
                     .setMessage("Unlock the wallet")
@@ -519,22 +538,26 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (connection) {
-            Credentials credentials = null;
+            /*Credentials credentials = null;
             try {
-                credentials = WalletUtils.loadCredentials(sharedPreferences.getString(walletName, ""), sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                credentials = WalletUtils.loadCredentials(password/*sharedPreferences.getString(walletName, "")), sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
                         "/" + walletName);
             } catch (IOException e) {
+                System.out.println("what on earth are u doin");
                 e.printStackTrace();
             } catch (CipherException e) {
-                e.printStackTrace();
+                toastAsync(e.toString());
             }
+            if(credentials == null) {
+                return;
+            }*/
 
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             View transactionView = getLayoutInflater().inflate(R.layout.info, null);
             EditText showAddress = transactionView.findViewById(R.id.AddressET);
-            showAddress.setText(credentials.getAddress());
+            showAddress.setText(accounts.get(walletName).getAddress());
             EditText showBalance = transactionView.findViewById(R.id.ethBalanceET);
-            showBalance.setText(getBalance(credentials.getAddress()));
+            showBalance.setText(getBalance(accounts.get(walletName).getAddress()));
             Button copyButton = transactionView.findViewById(R.id.copyBtn);
             copyButton.setOnClickListener(view1 -> {
                 ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
