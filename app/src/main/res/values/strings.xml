@@ -40,4 +40,5 @@
     <string name="pasteAddress">Paste</string>
     <string name="contracts">Contracts</string>
     <string name="unlock_wallet">Unlock Wallet</string>
+    <string name="getAllHash">get the hash of every uploaded document</string>
 </resources>

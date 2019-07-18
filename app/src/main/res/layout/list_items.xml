@@ -18,41 +18,49 @@
     <Button
         android:id="@+id/unlockButton"
         style="@style/Base.Widget.AppCompat.Button.Borderless"
-        android:layout_width="45dp"
+        android:layout_width="35dp"
         android:layout_height="wrap_content"
         android:layout_below="@id/walletAlias"
         android:layout_alignParentStart="true"
-        android:drawableStart="@drawable/closed_lock"/>
+        android:layout_marginTop="0dp"
+        android:drawableStart="@drawable/lock"
+        android:paddingStart="5dp"
+        android:paddingEnd="0dp" />
 
     <Button
         android:id="@+id/infoButton"
+        style="@style/Base.Widget.AppCompat.Button.Borderless"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/walletAlias"
+        android:layout_marginTop="0dp"
         android:layout_toEndOf="@+id/unlockButton"
         android:text="@string/info"
-        android:textSize="12sp"
-        style="@style/Base.Widget.AppCompat.Button.Borderless" />
+        android:textSize="12sp" />
 
     <Button
         android:id="@+id/transactionButton"
+        style="@style/Base.Widget.AppCompat.Button.Borderless"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@+id/walletAlias"
+        android:layout_marginStart="0dp"
+        android:layout_marginTop="0dp"
         android:layout_toEndOf="@+id/infoButton"
         android:text="@string/transaction"
-        android:textSize="12sp"
-        style="@style/Base.Widget.AppCompat.Button.Borderless" />
+        android:textSize="12sp" />
 
     <Button
         android:id="@+id/uploadDocumentButton"
+        style="@style/Base.Widget.AppCompat.Button.Borderless"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/walletAlias"
+        android:layout_marginStart="0dp"
+        android:layout_marginTop="0dp"
         android:layout_toEndOf="@+id/transactionButton"
         android:text="@string/upload"
-        android:textSize="12sp"
-        style="@style/Base.Widget.AppCompat.Button.Borderless" />
+        android:textSize="12sp" />
 
     <Button
         android:id="@+id/deleteButton"
@@ -61,10 +69,13 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/walletAlias"
         android:layout_alignParentEnd="true"
+
+        android:layout_marginTop="0dp"
+        android:layout_marginEnd="0dp"
         android:layout_toEndOf="@+id/uploadDocumentButton"
         android:background="#ff6666"
         android:drawableStart="@drawable/trash_bin"
-        android:paddingStart="25dp"
-        android:paddingEnd="25dp"/>
+        android:paddingStart="30dp"
+        android:paddingEnd="0dp" />
 
 </RelativeLayout>
