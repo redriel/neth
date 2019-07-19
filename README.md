@@ -1,8 +1,9 @@
 # Neth - Android Wallet Manager
 Neth è una app Android per la gestione di wallet della blockchain di Ethereum.
-For english readers, go here [README ENG](README_eng.md)
 
-![neth logo](https://imgur.com/VyYfzSJ)
+For english readers, go here: [README ENG](README_eng.md)
+
+![neth logo](https://ibb.co/0cvxv59)
 
 ## Introduzione
 Con Neth è possibile:
