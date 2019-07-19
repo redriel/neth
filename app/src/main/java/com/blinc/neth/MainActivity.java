@@ -7,6 +7,8 @@ import android.widget.Toast;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import org.web3j.abi.datatypes.Type;
+import org.web3j.abi.datatypes.Utf8String;
 import org.web3j.crypto.CipherException;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.ECKeyPair;
@@ -14,6 +16,7 @@ import org.web3j.crypto.MnemonicUtils;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
+import org.web3j.protocol.core.RemoteCall;
 import org.web3j.protocol.core.methods.response.EthGetBalance;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.core.methods.response.Web3ClientVersion;
@@ -29,7 +32,9 @@ import java.math.BigInteger;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import android.content.ClipData;
@@ -81,12 +86,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean connection;
     private ProgressBar progressBar;
     private Credentials credentials = null;
-    HashMap<String, Credentials> accounts = new HashMap<String, Credentials>();
+    HashMap<String, Credentials> accounts = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        setTitle(R.string.activity_name);
 
         setupBouncyCastle();
         walletList = new ArrayList<>();
@@ -123,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
                 Web3ClientVersion clientVersion = web3j.web3ClientVersion().sendAsync().get();
                 if (!clientVersion.hasError()) {
                     toastAsync("Connected!");
-                    connectButton.setText("Connected to Ethereum");
+                    connectButton.setText(getString(R.string.connectedToEthereum));
                     connectButton.setBackgroundColor(0xFF7CCC26);
                     connection = true;
                 } else {
@@ -341,7 +347,7 @@ public class MainActivity extends AppCompatActivity {
         if(connection) {
             credentials = accounts.get(wallet);
             //You should use your own contract wrapper and address
-            SignUpRegistry signUpRegistry = SignUpRegistry.load("0xEcB494A8d75a64D4D18e9A659f3fA2b70Eb09324", web3j, credentials, gasPrice, gasLimit);
+            SignUpRegistry signUpRegistry = SignUpRegistry.load("0x6b64aca43484c24da7ab4142d770a446421d277e", web3j, credentials, gasPrice, gasLimit);
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             View transactionView = getLayoutInflater().inflate(R.layout.upload, null);
             EditText hashET = transactionView.findViewById(R.id.hashET);
@@ -388,13 +394,19 @@ public class MainActivity extends AppCompatActivity {
             builder.show();
 
             getDocumentsButton.setOnClickListener(view1 ->{
-                AlertDialog alertDialog = new AlertDialog.Builder(this)
+
+                try {
+                    //signUpRegistry.getHashList(credentials.getAddress());
+                    AlertDialog alertDialog = new AlertDialog.Builder(this)
                         .setTitle("Uploaded documents")
                         .setMessage("This is the list of the hash of your uploaded documents")
-                        .setMessage("hash1\nhash2\n")
+                        .setMessage("document test: " /*list.get(0).toString()*/)
                         .setNegativeButton("Close", (dialog, which) -> dialog.dismiss())
                         .create();
                 alertDialog.show();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             });
 
         } else offChainErrorDialog();
@@ -456,11 +468,13 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Check if a given wallet is unlocked
-     * @param wallet
-     * @return
+     * @param wallet: the wallet to check
+     * @return true if unlocked, false otherwise
      */
     public boolean checkUnlocked(String wallet) {
-        if(accounts.get(wallet) == null) {
+        if(accounts.get(wallet) != null) {
+            return true;
+        } else {
             AlertDialog alertDialog = new AlertDialog.Builder(this)
                     .setTitle("Error")
                     .setMessage("Unlock the wallet")
@@ -468,7 +482,6 @@ public class MainActivity extends AppCompatActivity {
             alertDialog.show();
             return false;
         }
-        else return true;
     }
 
     /**

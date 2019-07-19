@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Neth - Android Ethereum Wallet</string>
+    <string name="app_name">Neth</string>
     <string name="connect">Connect to Ethereum</string>
     <string name="clientName">Waiting for connection</string>
     <string name="createWallet">Create Wallet</string>
@@ -41,4 +41,6 @@
     <string name="contracts">Contracts</string>
     <string name="unlock_wallet">Unlock Wallet</string>
     <string name="getAllHash">get the hash of every uploaded document</string>
+    <string name="connectedToEthereum">Connected to Ethereum</string>
+    <string name="activity_name">Neth - Android Wallet Manager</string>
 </resources>
