@@ -44,7 +44,7 @@ La pagina principale dell'applicazione si presenta in questo modo:
 
 ### Tecnologie utilizzate
  * Android Studio
- * Web3j API
+ * web3j API
  * web3j Command Line Tools
  * solc compiler
 
