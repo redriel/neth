@@ -4,15 +4,15 @@ Neth è una app Android per la gestione di wallet della blockchain di Ethereum.
 _For english readers, go here:_ [README ENG](README_eng.md)
 
 ## Introduzione
+Neth è scritta in Java e utilizza le API web3j per l'implementazione delle operazioni sulla blockchain.
 Con Neth è possibile:
 * stabilire una connessione alla blockchain Ethereum
 * creare wallet
 * effettuare transazioni tra diversi wallet
 * richiamare smart contract per la gestione dei file
-Neth è scritta in Java e utilizza le API web3j per l'implementazione delle operazioni sulla blockchain.
 
 ### Connessione ad Ethereum
-Per connettersi alla blockchain utilizza i servizi di endpoint forniti da Infura, che permettono la virtualizzazione dei nodi, rendendo più semplice e scalabile l'accesso alla blockchain.
+Per connettersi alla blockchain Neth utilizza i servizi di endpoint forniti da Infura, che permettono la virtualizzazione dei nodi, rendendo più semplice e scalabile l'accesso alla blockchain.
 
 ### Creazione e gestione dei wallet
 I wallet vengono creati come file JSON e salvati sul dispositivo. Alla creazione viene richiesta una password che verrà utilizzata per cifrare la chiave privata conservata all'interno del file JSON. Tale file viene salvato nell'internal storage del dispositivo, accessibile unicamente dalla app in runtime per eseguire le operazioni. Come precauzione aggiuntiva, ad ogni nuovo avvio della app l'utente deve inserire la password per sbloccare il wallet. In futuro sarà possibile implementare l'impronta digitale/pin/sequenza al posto della password per decifrare la chiave privata interna al JSON.
