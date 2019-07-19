@@ -4,7 +4,7 @@ Neth è una app Android per la gestione di wallet della blockchain di Ethereum.
 _For english readers, go here:_ [README ENG](README_eng.md)
 
 ## Introduzione
-Neth è scritta in Java e utilizza le API web3j per l'implementazione delle operazioni sulla blockchain.
+Neth è scritta in Java e utilizza le API [*web3j*](https://docs.web3j.io/getting_started.html) per l'implementazione delle operazioni sulla blockchain.
 Con Neth è possibile:
 * stabilire una connessione alla blockchain Ethereum
 * creare wallet
@@ -12,12 +12,12 @@ Con Neth è possibile:
 * richiamare smart contract per la gestione dei file
 
 ### Connessione ad Ethereum
-Per connettersi alla blockchain Neth utilizza i servizi di endpoint forniti da Infura, che permettono la virtualizzazione dei nodi, rendendo più semplice e scalabile l'accesso alla blockchain.
+Per connettersi alla blockchain Neth utilizza i servizi di endpoint forniti da [*Infura*](https://infura.io/), che permettono la virtualizzazione dei nodi, rendendo più semplice e scalabile l'accesso alla blockchain.
 
 ### Creazione e gestione dei wallet
 I wallet vengono creati come file JSON e salvati sul dispositivo. Alla creazione viene richiesta una password che verrà utilizzata per cifrare la chiave privata conservata all'interno del file JSON. Tale file viene salvato nell'internal storage del dispositivo, accessibile unicamente dalla app in runtime per eseguire le operazioni. Come precauzione aggiuntiva, ad ogni nuovo avvio della app l'utente deve inserire la password per sbloccare il wallet. In futuro sarà possibile implementare l'impronta digitale/pin/sequenza al posto della password per decifrare la chiave privata interna al JSON.
 
-I wallet vengono creati con lo standard BIP39 e sono Hierarchical Deterministic, ossia ad ognuno di essi è associata una passphrase di 12 parole fornita alla creazione, grazie alla quale è possibile ricreare un wallet in caso di necessità.
+I wallet vengono creati con lo standard [*BIP39*](https://en.bitcoin.it/wiki/Seed_phrase#Explanation) e sono Hierarchical Deterministic, ossia ad ognuno di essi è associata una passphrase di 12 parole fornita alla creazione, grazie alla quale è possibile ricreare un wallet in caso di necessità.
 
 Grazie alle API di web3j è inoltre possibile controllare in tempo reale lo stato di un wallet, ottenendo informazioni quali public address e saldo di ether. È inoltre possibile inviare ether ad un altro wallet.
 
@@ -47,3 +47,6 @@ La pagina principale dell'applicazione si presenta in questo modo:
  * Web3j API
  * web3j Command Line Tools
  * solc compiler
+
+## Autore
+**Gabriele Lavorato**
