@@ -59,7 +59,7 @@
         android:layout_marginStart="0dp"
         android:layout_marginTop="0dp"
         android:layout_toEndOf="@+id/transactionButton"
-        android:text="@string/upload"
+        android:text="@string/files"
         android:textSize="12sp" />
 
     <Button

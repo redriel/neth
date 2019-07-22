@@ -25,13 +25,17 @@ Grazie alle API di web3j è inoltre possibile controllare in tempo reale lo stat
 Per quanto riguarda gli smart contract, la loro implementazione è stata possibile grazie al compiler di solidity ed al Java Wrapper di web3j. Per utilizzare le funzioni di uno smart contract è necessario eseguire il deploy dello stesso e salvare il suo address, dopodichè è necessario compilare il file .sol con il compiler di solidity che crea gli oggetti .abi e .bin. Tali oggetti fungono da input per il wrapper di web3j che genera così una classe java da aggiungere alla app.
 La possibilità di creare classi java autogenerate a partire dagli smart contract rende l'implementazione estremamente semplice e rapida, pur con i suoi limiti (ad esempio non è al momento possibile utilizzare funzioni dei contratti che restituiscono strutture dati).
 
-Il contratto implementato da Neth è SignUpRegistry che permette di registrare un utente presso il contratto ed il caricamento di IPFShash di file. Al momento Neth non può interfacciarsi direttamente con IPFS (non esistono API java affidabili e le poche in circolazione sono acerbe e amatoriali) ma Infura prevede di aggiungere la virtualizzazione di nodi anche per la rete IPFS. Tale soluzione sarebbe ottimale perchè permetterebbe l'utilizzo del medesimo servizio per interfacciarsi con due sistemi diversi.
-È inoltre possibile vedere gli IPFShash di tutti i documenti precedentemente caricati da un utente.
+Il contratto implementato da Neth è SignUpRegistry che permette di eseguire le seguenti operazioni:
+- registrazione di un utente presso il contratto, abilitando le altre due operazioni
+- caricamento di IPFS hash di file. 
+- visione degli hash di tutti i documenti precedentemente caricati
+
+Al momento Neth non può interfacciarsi direttamente con IPFS (non esistono API java affidabili e le poche in circolazione sono acerbe e amatoriali) ma Infura prevede di aggiungere la virtualizzazione di nodi anche per la rete IPFS. Tale soluzione sarebbe ottimale perchè permetterebbe l'utilizzo del medesimo servizio per interfacciarsi con due sistemi diversi.
 
 ### Funzionalità
 La pagina principale dell'applicazione si presenta in questo modo:
 
-![schermata principale](https://i.imgur.com/JWUqE7m.png)
+![schermata principale](https://imgur.com/WxetGUX)
 
 1. Mostra lo stato della connessione alla blockchain di Ethereum
 2. Creazione un wallet. Una volta premuto il pulsante verrà richiesto l'inserimento di una password ed in seguito verrà mostrata la passphrase associata al wallet

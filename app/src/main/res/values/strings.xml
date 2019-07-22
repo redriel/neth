@@ -43,4 +43,5 @@
     <string name="getAllHash">get the hash of every uploaded document</string>
     <string name="connectedToEthereum">Connected to Ethereum</string>
     <string name="activity_name">Neth - Android Wallet Manager</string>
+    <string name="files">Files</string>
 </resources>

@@ -57,6 +57,9 @@ import static org.web3j.crypto.Hash.sha256;
  * - call the SignUpRegistry contract
  * - show info of a given wallet, such as address and ether balance
  * - recover a lost wallet through a 12-words mnemonic phrase
+ * - register the user to the contract
+ * - upload a document hash as transaction input data
+ * - list all the hash document the user uploaded
  *
  * @author Gabriele Lavorato
  * @version 0.2.1
@@ -69,6 +72,10 @@ public class MainActivity extends AppCompatActivity {
     //Default settings for contract gas price and gas limit
     public static final BigInteger gasPrice = DefaultGasProvider.GAS_PRICE;
     public static final BigInteger gasLimit = DefaultGasProvider.GAS_LIMIT;
+
+    //You should use your own Infura Endpoint and contract address
+    public static final String infuraEndpoint = "https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e";
+    public static final String smartContractAddress = "0x81eB3DA8e7CC5519386BC50e70a8AaCFd935fFC1";
 
     public ListView listView;
     public ArrayList<String> walletList;
@@ -116,25 +123,20 @@ public class MainActivity extends AppCompatActivity {
      * @param view: observed view
      */
     public void connectToEthNetwork(View view) {
-        //activateBar();
-        //new Thread(() -> {
-            // You should replace the URL with your own infura endpoint
-            web3j = Web3j.build(new HttpService("https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e"));
-            try {
-                Web3ClientVersion clientVersion = web3j.web3ClientVersion().sendAsync().get();
-                if (!clientVersion.hasError()) {
-                    toastAsync("Connected!");
-                    connectButton.setText(getString(R.string.connectedToEthereum));
-                    connectButton.setBackgroundColor(0xFF7CCC26);
-                    connection = true;
-                } else {
-                    toastAsync(clientVersion.getError().getMessage());
-                }
-            } catch (Exception e) {
-                toastAsync(e.getMessage());
+        web3j = Web3j.build(new HttpService(infuraEndpoint));
+        try {
+            Web3ClientVersion clientVersion = web3j.web3ClientVersion().sendAsync().get();
+            if (!clientVersion.hasError()) {
+                toastAsync("Connected!");
+                connectButton.setText(getString(R.string.connectedToEthereum));
+                connectButton.setBackgroundColor(0xFF7CCC26);
+                connection = true;
+            } else {
+                toastAsync(clientVersion.getError().getMessage());
             }
-        //}).start();
-        //deactivateBar();
+        } catch (Exception e) {
+            toastAsync(e.getMessage());
+        }
     }
 
     /**
@@ -218,11 +220,14 @@ public class MainActivity extends AppCompatActivity {
      * @param wallet: the wallet ot unlock
      */
     private void unlockWalletDialog(String wallet) {
+        /*
+        It's safe to assume that a Credentials object is not null only when it's correctly initialized.
+        This occurs when the password used is correct. Therefore a non null Credentials is successfully unlocked.
+         */
         if (accounts.get(wallet) != null) {
             toastAsync("Already unlocked");
             return;
         }
-
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View passwordView = getLayoutInflater().inflate(R.layout.unlock_wallet, null);
         EditText passwordET = passwordView.findViewById(R.id.etPassword);
@@ -231,6 +236,8 @@ public class MainActivity extends AppCompatActivity {
         builder.setView(passwordView);
         final AlertDialog dialog = builder.show();
 
+
+        //If the loadCredentials return a non null object we can assume the input password is correct.
         insertPassword.setOnClickListener(view1 -> {
             password = passwordET.getText().toString();
             credentials = null;
@@ -259,6 +266,7 @@ public class MainActivity extends AppCompatActivity {
      */
     private void mnemonicRecovery(){
         //Here we set all the editText to receive the user passphrase
+        //Not the most elegant solution but it gets the job done
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View recoveryView = getLayoutInflater().inflate(R.layout.recovery, null);
         EditText word1 = recoveryView.findViewById(R.id.word1);
@@ -321,6 +329,10 @@ public class MainActivity extends AppCompatActivity {
         activateBar();
         new Thread(() -> {
             try {
+                /*
+                accounts.get(wallet) cannot possibly be null, because the wallet must be unlocked.
+                An unlocked wallet is inevitably not null.
+                */
                TransactionReceipt receipt = Transfer.sendFunds(web3j, accounts.get(wallet), address,
                         new BigDecimal(value), Convert.Unit.ETHER).sendAsync().get();
                toastAsync("Transaction complete: " + receipt.getTransactionHash());
@@ -341,8 +353,7 @@ public class MainActivity extends AppCompatActivity {
         }
         if(connection) {
             credentials = accounts.get(wallet);
-            //You should use your own contract wrapper and address
-            SignUpRegistry signUpRegistry = SignUpRegistry.load("0x81eB3DA8e7CC5519386BC50e70a8AaCFd935fFC1", web3j, credentials, gasPrice, gasLimit);
+            SignUpRegistry signUpRegistry = SignUpRegistry.load(smartContractAddress, web3j, credentials, gasPrice, gasLimit);
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             View transactionView = getLayoutInflater().inflate(R.layout.upload, null);
             EditText hashET = transactionView.findViewById(R.id.hashET);
@@ -353,6 +364,10 @@ public class MainActivity extends AppCompatActivity {
             Button uploadButton = transactionView.findViewById(R.id.uploadBtn);
             Button getDocumentsButton = transactionView.findViewById(R.id.getDocument);
 
+            /*
+            This function registers the current user, aka the wallet public key, to the contract.
+            A registered user can call the other smart contract functions.
+             */
             signUpButton.setOnClickListener(view1 -> new Thread(() -> {
                 hideKeyboard();
                 activateBar();
@@ -370,6 +385,10 @@ public class MainActivity extends AppCompatActivity {
                 deactivateBar();
             }).start());
 
+            /*
+            This function uploads the IPFS hash of a document on the chain.
+            The hash is stored in the input data of the transaction.
+            */
             uploadButton.setOnClickListener(view1 -> new Thread(() -> {
                 hideKeyboard();
                 activateBar();
@@ -389,10 +408,17 @@ public class MainActivity extends AppCompatActivity {
             builder.show();
 
             /*
+            2019/07/13
             The Web3j API cannot receive any data structure from a smart contract.
             As a matter of fact, it's not possible obtain a list of uploaded documents.
             However, Web3j is still in beta and this problem may be solved in the future.
-*/
+
+            UPDATE
+            2019/07/22
+            This function now returns a string that is a concatenation of hashes.
+            That's not the optimal solution, but the best we got for now.
+            The string is received and simply displayed by the app.
+            */
             getDocumentsButton.setOnClickListener(view1 ->{
                 try {
                     String documents = signUpRegistry.getHashList(credentials.getAddress()).sendAsync().get(3, TimeUnit.MINUTES);
