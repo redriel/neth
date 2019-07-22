@@ -35,7 +35,7 @@ Al momento Neth non può interfacciarsi direttamente con IPFS (non esistono API 
 ### Funzionalità
 La pagina principale dell'applicazione si presenta in questo modo:
 
-![schermata principale](https://imgur.com/WxetGUX)
+![schermata principale](https://i.imgur.com/WxetGUX.png)
 
 1. Mostra lo stato della connessione alla blockchain di Ethereum
 2. Creazione un wallet. Una volta premuto il pulsante verrà richiesto l'inserimento di una password ed in seguito verrà mostrata la passphrase associata al wallet

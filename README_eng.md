@@ -35,7 +35,7 @@ Right now is not possible for Neth to interface directly with IPFS (such API do 
 ### Features
 The main page of the app is like this:
 
-![main_page](https://imgur.com/WxetGUX)
+![main_page](https://i.imgur.com/WxetGUX.png)
 
 1. Show the connection status
 2. Create a new wallet
