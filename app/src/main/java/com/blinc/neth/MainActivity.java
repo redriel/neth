@@ -7,8 +7,6 @@ import android.widget.Toast;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import org.web3j.abi.datatypes.Type;
-import org.web3j.abi.datatypes.Utf8String;
 import org.web3j.crypto.CipherException;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.ECKeyPair;
@@ -16,7 +14,6 @@ import org.web3j.crypto.MnemonicUtils;
 import org.web3j.crypto.WalletUtils;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.DefaultBlockParameterName;
-import org.web3j.protocol.core.RemoteCall;
 import org.web3j.protocol.core.methods.response.EthGetBalance;
 import org.web3j.protocol.core.methods.response.TransactionReceipt;
 import org.web3j.protocol.core.methods.response.Web3ClientVersion;
@@ -32,9 +29,7 @@ import java.math.BigInteger;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import android.content.ClipData;
@@ -347,7 +342,7 @@ public class MainActivity extends AppCompatActivity {
         if(connection) {
             credentials = accounts.get(wallet);
             //You should use your own contract wrapper and address
-            SignUpRegistry signUpRegistry = SignUpRegistry.load("0x6b64aca43484c24da7ab4142d770a446421d277e", web3j, credentials, gasPrice, gasLimit);
+            SignUpRegistry signUpRegistry = SignUpRegistry.load("0x81eB3DA8e7CC5519386BC50e70a8AaCFd935fFC1", web3j, credentials, gasPrice, gasLimit);
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             View transactionView = getLayoutInflater().inflate(R.layout.upload, null);
             EditText hashET = transactionView.findViewById(R.id.hashET);
@@ -393,14 +388,18 @@ public class MainActivity extends AppCompatActivity {
             builder.setView(transactionView);
             builder.show();
 
+            /*
+            The Web3j API cannot receive any data structure from a smart contract.
+            As a matter of fact, it's not possible obtain a list of uploaded documents.
+            However, Web3j is still in beta and this problem may be solved in the future.
+*/
             getDocumentsButton.setOnClickListener(view1 ->{
-
                 try {
-                    //signUpRegistry.getHashList(credentials.getAddress());
+                    String documents = signUpRegistry.getHashList(credentials.getAddress()).sendAsync().get(3, TimeUnit.MINUTES);
                     AlertDialog alertDialog = new AlertDialog.Builder(this)
                         .setTitle("Uploaded documents")
                         .setMessage("This is the list of the hash of your uploaded documents")
-                        .setMessage("document test: " /*list.get(0).toString()*/)
+                        .setMessage("document list: \n" + documents)
                         .setNegativeButton("Close", (dialog, which) -> dialog.dismiss())
                         .create();
                 alertDialog.show();

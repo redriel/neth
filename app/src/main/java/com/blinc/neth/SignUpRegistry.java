@@ -153,19 +153,11 @@ public class SignUpRegistry extends Contract {
         return executeRemoteCallTransaction(function);
     }
 
-    public RemoteCall<List> getHashList(String _user) {
+    public RemoteCall<String> getHashList(String _user) {
         final Function function = new Function(FUNC_GETHASHLIST,
                 Arrays.<Type>asList(new org.web3j.abi.datatypes.Address(_user)),
-                Arrays.<TypeReference<?>>asList(new TypeReference<DynamicArray<Utf8String>>() {}));
-        return new RemoteCall<List>(
-                new Callable<List>() {
-                    @Override
-                    @SuppressWarnings("unchecked")
-                    public List call() throws Exception {
-                        List<Type> result = (List<Type>) executeCallSingleValueReturn(function, List.class);
-                        return convertToNative(result);
-                    }
-                });
+                Arrays.<TypeReference<?>>asList(new TypeReference<Utf8String>() {}));
+        return executeRemoteCallSingleValueReturn(function, String.class);
     }
 
     public RemoteCall<TransactionReceipt> removeEndorsement(String user, String user_give_like, String _hash) {
