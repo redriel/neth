@@ -45,4 +45,5 @@
     <string name="activity_name">Neth - Android Wallet Manager</string>
     <string name="files">Files</string>
     <string name="register">register your account</string>
+    <string name="uploaded_documents">List of uploaded documents</string>
 </resources>

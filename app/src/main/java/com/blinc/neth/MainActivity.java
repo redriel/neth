@@ -1,18 +1,13 @@
 package com.blinc.neth;
 
-import android.app.Activity;
 import android.content.Intent;
-import android.database.Cursor;
 import android.net.Uri;
-import android.os.SystemClock;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import org.web3j.crypto.CipherException;
@@ -44,7 +39,6 @@ import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.regex.Pattern;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -61,7 +55,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 
-import static java.lang.Thread.sleep;
 import static org.web3j.crypto.Hash.sha256;
 
 /**
@@ -379,9 +372,9 @@ public class MainActivity extends AppCompatActivity {
             SignUpRegistry signUpRegistry = SignUpRegistry.load(smartContractAddress, web3j, credentials, gasPrice, gasLimit);
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             View transactionView = getLayoutInflater().inflate(R.layout.upload, null);
-            Button signUpButton = transactionView.findViewById(R.id.signUpBtn);
+            Button signUpButton = transactionView.findViewById(R.id.registerBtn);
             Button uploadButton = transactionView.findViewById(R.id.uploadBtn);
-            Button getDocumentsButton = transactionView.findViewById(R.id.getDocument);
+            Button getDocumentsButton = transactionView.findViewById(R.id.docListBtn);
 
             /*
             This function registers the current user, aka the wallet public key, to the contract.
