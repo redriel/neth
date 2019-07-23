@@ -20,7 +20,7 @@ allprojects {
     repositories {
         google()
         jcenter()
-        maven { url 'https://jitpack.io' } //this line is added by me
+        maven { url 'https://jitpack.io' } //this line was added by me
     }
 }
 

@@ -44,4 +44,5 @@
     <string name="connectedToEthereum">Connected to Ethereum</string>
     <string name="activity_name">Neth - Android Wallet Manager</string>
     <string name="files">Files</string>
+    <string name="register">register your account</string>
 </resources>

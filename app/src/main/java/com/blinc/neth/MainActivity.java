@@ -1,10 +1,18 @@
 package com.blinc.neth;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
+import android.os.SystemClock;
+import android.provider.MediaStore;
+import android.util.Log;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import org.web3j.crypto.CipherException;
@@ -26,11 +34,17 @@ import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -47,6 +61,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 
+import static java.lang.Thread.sleep;
 import static org.web3j.crypto.Hash.sha256;
 
 /**
@@ -76,6 +91,13 @@ public class MainActivity extends AppCompatActivity {
     //You should use your own Infura Endpoint and contract address
     public static final String infuraEndpoint = "https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e";
     public static final String smartContractAddress = "0x81eB3DA8e7CC5519386BC50e70a8AaCFd935fFC1";
+
+    //Path of selected files to upload
+    private ArrayList<String> docPaths = new ArrayList<>();
+    final int ACTIVITY_CHOOSE_FILE = 1000;
+    private File filetoHash;
+
+    public static final Object sharedLock = new Object();
 
     public ListView listView;
     public ArrayList<String> walletList;
@@ -333,6 +355,7 @@ public class MainActivity extends AppCompatActivity {
                 accounts.get(wallet) cannot possibly be null, because the wallet must be unlocked.
                 An unlocked wallet is inevitably not null.
                 */
+                toastAsync("Transaction started!");
                TransactionReceipt receipt = Transfer.sendFunds(web3j, accounts.get(wallet), address,
                         new BigDecimal(value), Convert.Unit.ETHER).sendAsync().get();
                toastAsync("Transaction complete: " + receipt.getTransactionHash());
@@ -356,10 +379,6 @@ public class MainActivity extends AppCompatActivity {
             SignUpRegistry signUpRegistry = SignUpRegistry.load(smartContractAddress, web3j, credentials, gasPrice, gasLimit);
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             View transactionView = getLayoutInflater().inflate(R.layout.upload, null);
-            EditText hashET = transactionView.findViewById(R.id.hashET);
-            hashET.setSelection(hashET.getText().length());
-            EditText eSKET = transactionView.findViewById(R.id.eSKET);
-            eSKET.setSelection(eSKET.getText().length());
             Button signUpButton = transactionView.findViewById(R.id.signUpBtn);
             Button uploadButton = transactionView.findViewById(R.id.uploadBtn);
             Button getDocumentsButton = transactionView.findViewById(R.id.getDocument);
@@ -372,17 +391,33 @@ public class MainActivity extends AppCompatActivity {
                 hideKeyboard();
                 activateBar();
                 TransactionReceipt transactionReceipt = null;
+                boolean b = false;
                 try {
-                    transactionReceipt = signUpRegistry.addUser(credentials.getAddress(), false).sendAsync().get(2, TimeUnit.MINUTES);
-                } catch (Exception e) {
+                    b = signUpRegistry.isExist(credentials.getAddress()).sendAsync().get(2, TimeUnit.MINUTES);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                } catch (TimeoutException e) {
                     e.printStackTrace();
                 }
-                if (transactionReceipt != null) {
-                    toastAsync("Successful transaction: gas used " + transactionReceipt.getGasUsed());
-                    System.out.println("Transaction hash: " + transactionReceipt.getTransactionHash());
-                    System.out.println("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+                if (b) {
+                    toastAsync("You are already subscribed to this service");
+                    deactivateBar();
                 }
-                deactivateBar();
+                else{
+                    try {
+                        transactionReceipt = signUpRegistry.addUser(credentials.getAddress(), false).sendAsync().get(2, TimeUnit.MINUTES);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    if (transactionReceipt != null) {
+                        toastAsync("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+                        System.out.println("Transaction hash: " + transactionReceipt.getTransactionHash());
+                        System.out.println("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+                    }
+                    deactivateBar();
+                }
             }).start());
 
             /*
@@ -392,17 +427,67 @@ public class MainActivity extends AppCompatActivity {
             uploadButton.setOnClickListener(view1 -> new Thread(() -> {
                 hideKeyboard();
                 activateBar();
-                TransactionReceipt transactionReceipt = null;
+
+                Intent chooseFile;
+                Intent intent;
+                chooseFile = new Intent(Intent.ACTION_GET_CONTENT);
+                chooseFile.addCategory(Intent.CATEGORY_OPENABLE);
+                chooseFile.setType("text/plain");
+                intent = Intent.createChooser(chooseFile, "Choose a file");
+                startActivityForResult(intent, 1000);
+                synchronized (sharedLock) {
+                    try {
+                        sharedLock.wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                MessageDigest md = null;
                 try {
-                    transactionReceipt = signUpRegistry.addDocument(credentials.getAddress(),
-                            hashET.getText().toString(), eSKET.getText().toString()).sendAsync().get(3, TimeUnit.MINUTES);
-                } catch (Exception e) {
+                    md = MessageDigest.getInstance("SHA-256");
+                } catch (NoSuchAlgorithmException e) {
                     e.printStackTrace();
                 }
-                toastAsync("Successful transaction: gas used " + transactionReceipt.getGasUsed());
-                System.out.println("Successful transaction: gas used " + transactionReceipt.getGasUsed());
-                System.out.println("Transaction hash: " + transactionReceipt.getTransactionHash());
-                deactivateBar();
+
+                // Change this to UTF-16 if needed
+                md.update(filetoHash.toString().getBytes(StandardCharsets.UTF_8));
+                byte[] digest = md.digest();
+
+                String hex = "Qm" + String.format("%064x", new BigInteger(1, digest));
+
+                boolean b = false;
+                try {
+                    b = signUpRegistry.existHash(credentials.getAddress(), hex).sendAsync().get(2, TimeUnit.MINUTES);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                } catch (TimeoutException e) {
+                    e.printStackTrace();
+                }
+                if (b) {
+                    toastAsync("You already uploaded that document");
+                    deactivateBar();
+                }
+                else {
+                    TransactionReceipt transactionReceipt = null;
+                    try {
+                        transactionReceipt = signUpRegistry.addDocument(credentials.getAddress(),
+                                hex, "my_eSK").sendAsync().get(3, TimeUnit.MINUTES);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    if (transactionReceipt != null) {
+                        toastAsync("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+                        System.out.println("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+                        System.out.println("Transaction hash: " + transactionReceipt.getTransactionHash());
+                    }
+                    else {
+                        toastAsync("Something went wrong. Maybe not enough gas?");
+                    }
+                    deactivateBar();
+                }
             }).start());
             builder.setView(transactionView);
             builder.show();
@@ -424,8 +509,7 @@ public class MainActivity extends AppCompatActivity {
                     String documents = signUpRegistry.getHashList(credentials.getAddress()).sendAsync().get(3, TimeUnit.MINUTES);
                     AlertDialog alertDialog = new AlertDialog.Builder(this)
                         .setTitle("Uploaded documents")
-                        .setMessage("This is the list of the hash of your uploaded documents")
-                        .setMessage("document list: \n" + documents)
+                        .setMessage(documents)
                         .setNegativeButton("Close", (dialog, which) -> dialog.dismiss())
                         .create();
                 alertDialog.show();
@@ -435,6 +519,19 @@ public class MainActivity extends AppCompatActivity {
             });
 
         } else offChainErrorDialog();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode == ACTIVITY_CHOOSE_FILE) {
+            Uri uri = data.getData();
+            String path = uri.getPath();
+            filetoHash = new File(path);
+            Log.d("File acquired:", filetoHash.toString());
+            synchronized (sharedLock) {
+                sharedLock.notify();
+            }
+        }
     }
 
     /**

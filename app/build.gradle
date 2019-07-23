@@ -31,10 +31,10 @@ dependencies {
     androidTestImplementation 'com.android.support.test:runner:1.0.2'
     androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
     implementation 'org.web3j:core:4.1.0-android' //This line is added by me
-    implementation "com.github.ipfs:java-ipfs-http-client:v1.2.3" //This line is added by me
     implementation 'com.github.multiformats:java-multibase:v1.0.1' //This line is added by me
     implementation 'com.github.multiformats:java-multiaddr:v1.3.1' //This line is added by me
     implementation 'com.github.multiformats:java-multihash:v1.2.1'
     implementation 'org.jetbrains:annotations:15.0'//This line is added by me
-    implementation 'com.github.tozny:java-aes-crypto:1.1.0'
+    implementation 'commons-codec:commons-codec:1.12' //This line is added by me
+
 }
