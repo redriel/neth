@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
     public HashMap<String, Credentials> accounts = new HashMap<>();
 
     private static SharedPreferences sharedPreferences;
-    private File fileToHash;
+    private File fileToUpload;
     private String password;
     private Web3j web3j;
     private File walletDirectory;
@@ -104,7 +104,7 @@ public class MainActivity extends AppCompatActivity {
     private Credentials credentials = null;
 
     /**
-     * Compute a random value in a given range
+     * Computes a random value in a given range
      *
      * @param min: the lower bound
      * @param max: the upper bound
@@ -124,7 +124,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         setTitle(R.string.activity_name);
 
+        //setup of the security provider
         setupBouncyCastle();
+
         walletList = new ArrayList<>();
         connection = false;
 
@@ -133,7 +135,7 @@ public class MainActivity extends AppCompatActivity {
         listView.addHeaderView(listHeader);
         connectButton = findViewById(R.id.connectBtn);
         Button recoveryButton = findViewById(R.id.recoverWalletBtn);
-        recoveryButton.setOnClickListener(view -> mnemonicRecovery());
+        recoveryButton.setOnClickListener(view -> mnemonicRecoveryDialog());
         progressBar = findViewById(R.id.progressbar);
         progressBar.setVisibility(View.INVISIBLE);
 
@@ -147,9 +149,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Establish connection to the Rinkeby testnet via Infura endpoint
+     * Establishes connection to the Rinkeby testnet via Infura endpoint
      *
-     * @param view: observed view
+     * @param view: the current view
      */
     public void connectToEthNetwork(View view) {
         web3j = Web3j.build(new HttpService(infuraEndpoint));
@@ -169,9 +171,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Show a dialog to create a wallet
+     * Shows an error message when the app is disconnected from the blockchain
      *
-     * @param view: the view
+     */
+    public void offChainErrorDialog() {
+        AlertDialog alertDialog = new AlertDialog.Builder(this)
+                .setTitle("Error")
+                .setMessage("Connect to the blockchain first")
+                .create();
+        alertDialog.show();
+    }
+
+    /**
+     * Shows a dialog to create a wallet
+     *
+     * @param view: the current view
      */
     public void createWalletDialog(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -194,7 +208,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Create a wallet and stores it on the device
+     * Creates a wallet and stores it on the device
      *
      * @param password: the entered password
      */
@@ -204,52 +218,56 @@ public class MainActivity extends AppCompatActivity {
             sharedPreferences.edit().putString(WALLET_DIRECTORY_KEY, walletDirectory.getAbsolutePath()).apply();
             refreshList();
             toastAsync("Wallet created!");
-            String mnemonic = wallet.substring(wallet.indexOf("mnemonic='") + 10, wallet.indexOf("'}"));
-            mnemonicPassphraseDialog(mnemonic);
+            String mnemonicPassphrase = wallet.substring(wallet.indexOf("mnemonic='") + 10, wallet.indexOf("'}"));
+            mnemonicPassphraseDialog(mnemonicPassphrase);
         } catch (Exception e) {
-            toastAsync("ERROR:" + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     /**
-     * Show a dialog with the mnemonic passphrase
+     * Shows a dialog with the mnemonic passphrase
      *
      * @param mnemonicPassphrase: the mnemonic passphrase used to recover a wallet
      */
     private void mnemonicPassphraseDialog(String mnemonicPassphrase) {
+        //Here we set all the editText to show the passphrase to the user
+        //Not the most elegant solution but it gets the job done
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View mnemonicView = getLayoutInflater().inflate(R.layout.passphrase, null);
-        EditText word1 = mnemonicView.findViewById(R.id.word1);
-        EditText word2 = mnemonicView.findViewById(R.id.word2);
-        EditText word3 = mnemonicView.findViewById(R.id.word3);
-        EditText word4 = mnemonicView.findViewById(R.id.word4);
-        EditText word5 = mnemonicView.findViewById(R.id.word5);
-        EditText word6 = mnemonicView.findViewById(R.id.word6);
-        EditText word7 = mnemonicView.findViewById(R.id.word7);
-        EditText word8 = mnemonicView.findViewById(R.id.word8);
-        EditText word9 = mnemonicView.findViewById(R.id.word9);
-        EditText word10 = mnemonicView.findViewById(R.id.word10);
-        EditText word11 = mnemonicView.findViewById(R.id.word11);
-        EditText word12 = mnemonicView.findViewById(R.id.word12);
+        View mnemonicPassphraseView = getLayoutInflater().inflate(R.layout.passphrase, null);
+        EditText word1 = mnemonicPassphraseView.findViewById(R.id.word1);
+        EditText word2 = mnemonicPassphraseView.findViewById(R.id.word2);
+        EditText word3 = mnemonicPassphraseView.findViewById(R.id.word3);
+        EditText word4 = mnemonicPassphraseView.findViewById(R.id.word4);
+        EditText word5 = mnemonicPassphraseView.findViewById(R.id.word5);
+        EditText word6 = mnemonicPassphraseView.findViewById(R.id.word6);
+        EditText word7 = mnemonicPassphraseView.findViewById(R.id.word7);
+        EditText word8 = mnemonicPassphraseView.findViewById(R.id.word8);
+        EditText word9 = mnemonicPassphraseView.findViewById(R.id.word9);
+        EditText word10 = mnemonicPassphraseView.findViewById(R.id.word10);
+        EditText word11 = mnemonicPassphraseView.findViewById(R.id.word11);
+        EditText word12 = mnemonicPassphraseView.findViewById(R.id.word12);
         EditText[] array = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
-        Button okButton = mnemonicView.findViewById(R.id.nextBtn);
-        Button copyButton = mnemonicView.findViewById(R.id.copyPassphraseBtn);
+
+        Button nextButton = mnemonicPassphraseView.findViewById(R.id.nextBtn);
+        Button copyPassphraseButton = mnemonicPassphraseView.findViewById(R.id.copyPassphraseBtn);
+
         String[] arr = mnemonicPassphrase.split(" ");
 
         for (int i = 0; i < 12; i++) {
             array[i].setText(arr[i]);
             array[i].setKeyListener(null);
         }
-        builder.setView(mnemonicView);
+        builder.setView(mnemonicPassphraseView);
         final AlertDialog dialog = builder.show();
         dialog.setCanceledOnTouchOutside(false);
 
-        okButton.setOnClickListener(view1 -> {
+        nextButton.setOnClickListener(view1 -> {
             dialog.dismiss();
             confirmPassphraseDialog(mnemonicPassphrase);
         });
 
-        copyButton.setOnClickListener(view1 -> {
+        copyPassphraseButton.setOnClickListener(view1 -> {
             ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
             ClipData clip = ClipData.newPlainText("", mnemonicPassphrase);
             clipboard.setPrimaryClip(clip);
@@ -258,65 +276,66 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Show a dialog to confirm the user knowledge of the passphrase
+     * Shows a dialog to confirm the user knowledge of the passphrase
      *
      * @param mnemonicPassphrase: the passphrase to check
      */
     private void confirmPassphraseDialog(String mnemonicPassphrase) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View mnemonicView = getLayoutInflater().inflate(R.layout.passphrase, null);
-        EditText word1 = mnemonicView.findViewById(R.id.word1);
-        EditText word2 = mnemonicView.findViewById(R.id.word2);
-        EditText word3 = mnemonicView.findViewById(R.id.word3);
-        EditText word4 = mnemonicView.findViewById(R.id.word4);
-        EditText word5 = mnemonicView.findViewById(R.id.word5);
-        EditText word6 = mnemonicView.findViewById(R.id.word6);
-        EditText word7 = mnemonicView.findViewById(R.id.word7);
-        EditText word8 = mnemonicView.findViewById(R.id.word8);
-        EditText word9 = mnemonicView.findViewById(R.id.word9);
-        EditText word10 = mnemonicView.findViewById(R.id.word10);
-        EditText word11 = mnemonicView.findViewById(R.id.word11);
-        EditText word12 = mnemonicView.findViewById(R.id.word12);
-
+        View mnemonicPassphraseView = getLayoutInflater().inflate(R.layout.passphrase, null);
+        EditText word1 = mnemonicPassphraseView.findViewById(R.id.word1);
+        EditText word2 = mnemonicPassphraseView.findViewById(R.id.word2);
+        EditText word3 = mnemonicPassphraseView.findViewById(R.id.word3);
+        EditText word4 = mnemonicPassphraseView.findViewById(R.id.word4);
+        EditText word5 = mnemonicPassphraseView.findViewById(R.id.word5);
+        EditText word6 = mnemonicPassphraseView.findViewById(R.id.word6);
+        EditText word7 = mnemonicPassphraseView.findViewById(R.id.word7);
+        EditText word8 = mnemonicPassphraseView.findViewById(R.id.word8);
+        EditText word9 = mnemonicPassphraseView.findViewById(R.id.word9);
+        EditText word10 = mnemonicPassphraseView.findViewById(R.id.word10);
+        EditText word11 = mnemonicPassphraseView.findViewById(R.id.word11);
+        EditText word12 = mnemonicPassphraseView.findViewById(R.id.word12);
         EditText[] array = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
-        Button okButton = mnemonicView.findViewById(R.id.nextBtn);
-        Button copyButton = mnemonicView.findViewById(R.id.copyPassphraseBtn);
-        okButton.setText(getString(R.string.confirm));
+
+        Button confirmButton = mnemonicPassphraseView.findViewById(R.id.nextBtn);
+        Button copyButton = mnemonicPassphraseView.findViewById(R.id.copyPassphraseBtn);
+        confirmButton.setText(getString(R.string.confirm));
         copyButton.setVisibility(View.GONE);
 
-        String[] arr = mnemonicPassphrase.split(" ");
+        String[] mnemonicWords = mnemonicPassphrase.split(" ");
 
-        int[] excludedNumbers = new int[4];
-
+        //Here we pick random words to hide from the user
+        int[] excludedWords = new int[4];
         for (int i = 0; i < 4; i++) {
-            excludedNumbers[i] = getRandomNumberInRange(0, 11);
+            excludedWords[i] = getRandomNumberInRange(0, 11);
         }
 
-        boolean flag = true;
-
+        //We do not show the hidden words to the user
+        boolean wordToShow = true;
         for (int i = 0; i < 12; i++) {
             for (int j = 0; j < 4; j++) {
-                if (excludedNumbers[j] == i)
-                    flag = false;
+                if (excludedWords[j] == i)
+                    wordToShow = false;
             }
-            if (flag) {
-                array[i].setText(arr[i]);
+            if (wordToShow) {
+                array[i].setText(mnemonicWords[i]);
                 array[i].setEnabled(false);
             }
-            flag = true;
+            wordToShow = true;
         }
 
-        builder.setView(mnemonicView);
+        builder.setView(mnemonicPassphraseView);
         final AlertDialog dialog = builder.show();
         dialog.setCanceledOnTouchOutside(false);
-        okButton.setOnClickListener(view1 -> {
 
-            String mnemonic = word1.getText().toString() + " " + word2.getText().toString() + " " + word3.getText().toString() + " " +
+        confirmButton.setOnClickListener(view1 -> {
+            String input = word1.getText().toString() + " " + word2.getText().toString() + " " + word3.getText().toString() + " " +
                     word4.getText().toString() + " " + word5.getText().toString() + " " + word6.getText().toString() + " " +
                     word7.getText().toString() + " " + word8.getText().toString() + " " + word9.getText().toString() + " " +
                     word10.getText().toString() + " " + word11.getText().toString() + " " + word12.getText().toString();
 
-            if (mnemonic.equals(mnemonicPassphrase)) {
+            // We check if the user completed correctly the passphrase
+            if (input.equals(mnemonicPassphrase)) {
                 dialog.dismiss();
             } else {
                 toastAsync("Wrong passphrase. Please retry");
@@ -325,58 +344,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Unlock the wallet loading its credentials
-     *
-     * @param wallet: the wallet ot unlock
-     */
-    private void unlockWalletDialog(String wallet) {
-        /*
-        It's safe to assume that a Credentials object is not null only when it's correctly initialized.
-        This occurs when the set_password used is correct. Therefore a non null Credentials is successfully unlocked.
-         */
-        if (accounts.get(wallet) != null) {
-            toastAsync("Already unlocked");
-            return;
-        }
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View passwordView = getLayoutInflater().inflate(R.layout.unlock_wallet, null);
-        EditText passwordET = passwordView.findViewById(R.id.passwordET);
-        Button insertPassword = passwordView.findViewById(R.id.insertPasswordBtn);
-
-        builder.setView(passwordView);
-        final AlertDialog dialog = builder.show();
-
-        //If the loadCredentials return a non null object we can assume the input set_password is correct.
-        insertPassword.setOnClickListener(view1 -> {
-            password = passwordET.getText().toString();
-            credentials = null;
-            try {
-                credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                        "/" + wallet);
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (CipherException e) {
-                e.printStackTrace();
-            }
-            if (credentials != null) {
-                toastAsync("Unlocked!");
-                accounts.put(wallet, credentials);
-                dialog.dismiss();
-            } else {
-                toastAsync("Wrong password!");
-                dialog.dismiss();
-            }
-
-        });
-    }
-
-    /**
-     * Recover an HD wallet from a 12-words mnemonic phrase
+     * Recovers an HD wallet from a 12-words mnemonic phrase
      *
      */
-    private void mnemonicRecovery() {
-        //Here we set all the editText to receive the user passphrase
-        //Not the most elegant solution but it gets the job done
+    private void mnemonicRecoveryDialog() {
+        //Here we set all the editText to check the user passphrase
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View recoveryView = getLayoutInflater().inflate(R.layout.recovery, null);
         EditText word1 = recoveryView.findViewById(R.id.word1);
@@ -399,21 +371,20 @@ public class MainActivity extends AppCompatActivity {
         pasteButton.setOnClickListener(view1 -> {
             ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
             String mnemonic = clipboard.getText().toString();
-            String[] arr = mnemonic.split(" ");
+            String[] mnemonicWords = mnemonic.split(" ");
             for (int i = 0; i < 12; i++) {
-                array[i].setText(arr[i]);
+                array[i].setText(mnemonicWords[i]);
             }
         });
 
         //Here we recover the wallet with the passphrase
         recoveryButton.setOnClickListener(view1 -> {
-            String mnemonic = word1.getText().toString() + " " + word2.getText().toString() + " " + word3.getText().toString() + " " +
+            String input = word1.getText().toString() + " " + word2.getText().toString() + " " + word3.getText().toString() + " " +
                     word4.getText().toString() + " " + word5.getText().toString() + " " + word6.getText().toString() + " " +
                     word7.getText().toString() + " " + word8.getText().toString() + " " + word9.getText().toString() + " " +
                     word10.getText().toString() + " " + word11.getText().toString() + " " + word12.getText().toString();
-            byte[] seed = MnemonicUtils.generateSeed(mnemonic, password);
+            byte[] seed = MnemonicUtils.generateSeed(input, password);
             ECKeyPair privateKey = ECKeyPair.create(sha256(seed));
-            System.out.println(privateKey);
             try {
                 WalletUtils.generateWalletFile(password, privateKey, walletDirectory, false);
                 toastAsync("Wallet recovered!");
@@ -430,225 +401,71 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Send ether from a wallet to another
+     * Unlocks the wallet loading its credentials
      *
-     * @param wallet:  the wallet of the sender
-     * @param address: the address of the receiver
-     * @param value:   the amount of ether sent
+     * @param wallet: the wallet ot unlock
      */
-    public void sendTransaction(String wallet, String address, String value) {
-        activateBar();
-        new Thread(() -> {
-            try {
-                /*
-                accounts.get(wallet) cannot possibly be null, because the wallet must be unlocked.
-                An unlocked wallet is inevitably not null.
-                */
-                toastAsync("Transaction started!");
-                TransactionReceipt receipt = Transfer.sendFunds(web3j, accounts.get(wallet), address,
-                        new BigDecimal(value), Convert.Unit.ETHER).sendAsync().get();
-                toastAsync("Transaction complete: " + receipt.getTransactionHash());
-            } catch (Exception e) {
-                toastAsync(e.getMessage());
-            }
-        }).start();
-        deactivateBar();
-    }
-
-    /**
-     * Call the SignUpRegistry contract functions
-     *
-     * @param wallet: the wallet calling the contract functions
-     */
-    public void smartContractCall(String wallet) {
-        if (!checkUnlocked(wallet)) {
+    private void unlockWalletDialog(String wallet) {
+        //It's safe to assume that the Credentials object is not null when it's correctly initialized.
+        //So if the entered password is correct, Credentials is not null and already unlocked.
+        if (accounts.get(wallet) != null) {
+            toastAsync("Already unlocked");
             return;
         }
-        if (connection) {
-            credentials = accounts.get(wallet);
-            SignUpRegistry signUpRegistry = SignUpRegistry.load(smartContractAddress, web3j, credentials, gasPrice, gasLimit);
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            View transactionView = getLayoutInflater().inflate(R.layout.contracts, null);
-            Button signUpButton = transactionView.findViewById(R.id.registerBtn);
-            Button uploadButton = transactionView.findViewById(R.id.uploadDocBtn);
-            Button getDocumentsButton = transactionView.findViewById(R.id.docListBtn);
 
-            /*
-            This function registers the current user, aka the wallet public key, to the contract.
-            A registered user can call the other smart contract functions.
-             */
-            signUpButton.setOnClickListener(view1 -> new Thread(() -> {
-                hideKeyboard();
-                activateBar();
-                TransactionReceipt transactionReceipt = null;
-                boolean b = false;
-                try {
-                    b = signUpRegistry.isExist(credentials.getAddress()).sendAsync().get(2, TimeUnit.MINUTES);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                } catch (TimeoutException e) {
-                    e.printStackTrace();
-                }
-                if (b) {
-                    toastAsync("You are already subscribed to this service");
-                    deactivateBar();
-                } else {
-                    try {
-                        transactionReceipt = signUpRegistry.addUser(credentials.getAddress(), false).sendAsync().get(2, TimeUnit.MINUTES);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    if (transactionReceipt != null) {
-                        toastAsync("Successful transaction: gas used " + transactionReceipt.getGasUsed());
-                        System.out.println("Transaction hash: " + transactionReceipt.getTransactionHash());
-                        System.out.println("Successful transaction: gas used " + transactionReceipt.getGasUsed());
-                    }
-                    deactivateBar();
-                }
-            }).start());
+        //However if the Credentials is null, then we have to acquire the password from the user
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View passwordView = getLayoutInflater().inflate(R.layout.unlock_wallet, null);
+        EditText passwordET = passwordView.findViewById(R.id.passwordET);
+        Button insertPasswordButton = passwordView.findViewById(R.id.insertPasswordBtn);
 
-            /*
-            This function uploads the IPFS hash of a document on the chain.
-            The hash is stored in the input data of the transaction.
-            */
-            uploadButton.setOnClickListener(view1 -> new Thread(() -> {
-                hideKeyboard();
-                activateBar();
+        builder.setView(passwordView);
+        final AlertDialog dialog = builder.show();
 
-                Intent chooseFile;
-                Intent intent;
-                chooseFile = new Intent(Intent.ACTION_GET_CONTENT);
-                chooseFile.addCategory(Intent.CATEGORY_OPENABLE);
-                chooseFile.setType("text/plain");
-                intent = Intent.createChooser(chooseFile, "Choose a file");
-                startActivityForResult(intent, 1000);
-                synchronized (sharedLock) {
-                    try {
-                        sharedLock.wait();
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                MessageDigest md = null;
-                try {
-                    md = MessageDigest.getInstance("SHA-256");
-                } catch (NoSuchAlgorithmException e) {
-                    e.printStackTrace();
-                }
-
-                // Change this to UTF-16 if needed
-                md.update(fileToHash.toString().getBytes(StandardCharsets.UTF_8));
-                byte[] digest = md.digest();
-
-                String hex = "Qm" + String.format("%064x", new BigInteger(1, digest));
-
-                boolean b = false;
-                try {
-                    b = signUpRegistry.existHash(credentials.getAddress(), hex).sendAsync().get(2, TimeUnit.MINUTES);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
-                } catch (TimeoutException e) {
-                    e.printStackTrace();
-                }
-                if (b) {
-                    toastAsync("You already uploaded that document");
-                    deactivateBar();
-                } else {
-                    TransactionReceipt transactionReceipt = null;
-                    try {
-                        transactionReceipt = signUpRegistry.addDocument(credentials.getAddress(),
-                                hex, "my_eSK").sendAsync().get(3, TimeUnit.MINUTES);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                    if (transactionReceipt != null) {
-                        toastAsync("Successful transaction: gas used " + transactionReceipt.getGasUsed());
-                        System.out.println("Successful transaction: gas used " + transactionReceipt.getGasUsed());
-                        System.out.println("Transaction hash: " + transactionReceipt.getTransactionHash());
-                    } else {
-                        toastAsync("Something went wrong. Maybe not enough gas?");
-                    }
-                    deactivateBar();
-                }
-            }).start());
-            builder.setView(transactionView);
-            builder.show();
-
-            /*
-            2019/07/13
-            The Web3j API cannot receive any data structure from a smart contract.
-            As a matter of fact, it's not possible obtain a list of uploaded documents.
-            However, Web3j is still in beta and this problem may be solved in the future.
-
-            UPDATE
-            2019/07/22
-            This function now returns a string that is a concatenation of hashes.
-            That's not the optimal solution, but the best we got for now.
-            The string is received and simply displayed by the app.
-            */
-            getDocumentsButton.setOnClickListener(view1 -> {
-                try {
-                    String documents = signUpRegistry.getHashList(credentials.getAddress()).sendAsync().get(3, TimeUnit.MINUTES);
-                    AlertDialog alertDialog = new AlertDialog.Builder(this)
-                            .setTitle("Uploaded documents")
-                            .setMessage(documents)
-                            .setNegativeButton("Close", (dialog, which) -> dialog.dismiss())
-                            .create();
-                    alertDialog.show();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-
-        } else offChainErrorDialog();
+        //If the loadCredentials returns a non null object we know the entered password is correct.
+        insertPasswordButton.setOnClickListener(view1 -> {
+            password = passwordET.getText().toString();
+            credentials = null;
+            try {
+                credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                        "/" + wallet);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (CipherException e) {
+                e.printStackTrace();
+            }
+            if (credentials != null) {
+                toastAsync("Unlocked!");
+                accounts.put(wallet, credentials);
+                dialog.dismiss();
+            } else {
+                toastAsync("Wrong password!");
+                dialog.dismiss();
+            }
+        });
     }
 
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == ACTIVITY_CHOOSE_FILE) {
-            Uri uri = data.getData();
-            String path = uri.getPath();
-            fileToHash = new File(path);
-            Log.d("File acquired:", fileToHash.toString());
-            synchronized (sharedLock) {
-                sharedLock.notify();
-            }
+    /**
+     * Checks if a given wallet is unlocked
+     *
+     * @param wallet: the wallet to check
+     * @return true if unlocked, false otherwise
+     */
+    public boolean checkUnlocked(String wallet) {
+        if (accounts.get(wallet) != null) {
+            return true;
+        } else {
+            AlertDialog alertDialog = new AlertDialog.Builder(this)
+                    .setTitle("Error")
+                    .setMessage("Unlock the wallet")
+                    .create();
+            alertDialog.show();
+            return false;
         }
     }
 
     /**
-     * Delete a given wallet
-     *
-     * @param wallet: the wallet to delete
-     */
-    public void deleteWallet(final String wallet) {
-        AlertDialog alertDialog = new AlertDialog.Builder(this)
-                .setTitle("Delete Wallet")
-                .setMessage("Do you want to delete this wallet from the storage?")
-                .setPositiveButton("Yes", (dialog, which) -> {
-                    File file = new File(sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                            "/" + wallet);
-                    if (file.exists() && file.delete()) {
-                        toastAsync("Wallet deleted");
-                    } else {
-                        System.err.println(
-                                "I cannot find '" + file + "' ('" + file.getAbsolutePath() + "')");
-                    }
-                    walletList.remove(wallet);
-                    listAdapter.notifyDataSetChanged();
-                })
-                .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
-                .create();
-        alertDialog.show();
-    }
-
-    /**
-     * Display address and eth balance of a given wallet.
+     * Displays address and eth balance of a given wallet.
      *
      * @param wallet: the wallet to display info
      */
@@ -678,26 +495,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Check if a given wallet is unlocked
+     * Computes the ether balance of a given address
      *
-     * @param wallet: the wallet to check
-     * @return true if unlocked, false otherwise
+     * @param address: the given address
+     * @return the ether balance
      */
-    public boolean checkUnlocked(String wallet) {
-        if (accounts.get(wallet) != null) {
-            return true;
-        } else {
-            AlertDialog alertDialog = new AlertDialog.Builder(this)
-                    .setTitle("Error")
-                    .setMessage("Unlock the wallet")
-                    .create();
-            alertDialog.show();
-            return false;
+    public String getBalance(String address) {
+        // send asynchronous requests to get balance
+        EthGetBalance ethGetBalance = null;
+        try {
+            ethGetBalance = web3j
+                    .ethGetBalance(address, DefaultBlockParameterName.LATEST)
+                    .sendAsync()
+                    .get();
+        } catch (Exception e) {
+            toastAsync(e.getMessage());
         }
+        BigDecimal etherValue = Convert.fromWei(ethGetBalance.getBalance().toString(), Convert.Unit.ETHER);
+        return etherValue.toString();
     }
 
     /**
-     * Show a dialog to acquire transaction info.
+     * Shows a dialog to acquire transaction info.
      *
      * @param wallet: the sender of the transaction
      */
@@ -729,40 +548,222 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Check the state of the connection to the blockchain
+     * Sends ether from a wallet to another
      *
+     * @param wallet:  the wallet of the sender
+     * @param address: the address of the receiver
+     * @param value:   the amount of ether sent
      */
-    public void offChainErrorDialog() {
+    public void sendTransaction(String wallet, String address, String value) {
+        activateBar();
+        new Thread(() -> {
+            try {
+                toastAsync("Transaction started!");
+                TransactionReceipt receipt = Transfer.sendFunds(web3j, accounts.get(wallet), address,
+                        new BigDecimal(value), Convert.Unit.ETHER).sendAsync().get();
+                toastAsync("Transaction complete: " + receipt.getTransactionHash());
+            } catch (Exception e) {
+                toastAsync(e.getMessage());
+            }
+        }).start();
+        deactivateBar();
+    }
+
+    /**
+     * Calls the SignUpRegistry contract functions
+     *
+     * @param wallet: the wallet calling the contract functions
+     */
+    public void smartContractCallDialog(String wallet) {
+        if (!checkUnlocked(wallet)) {
+            return;
+        }
+        if (connection) {
+            credentials = accounts.get(wallet);
+            SignUpRegistry signUpRegistry = SignUpRegistry.load(smartContractAddress, web3j, credentials, gasPrice, gasLimit);
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            View transactionView = getLayoutInflater().inflate(R.layout.contracts, null);
+            Button signUpButton = transactionView.findViewById(R.id.registerBtn);
+            Button uploadDocumentButton = transactionView.findViewById(R.id.uploadDocBtn);
+            Button getDocumentsButton = transactionView.findViewById(R.id.docListBtn);
+
+            signUpButton.setOnClickListener(view1 -> new Thread(() -> {
+                hideKeyboard();
+                activateBar();
+                registerUser(credentials, signUpRegistry);
+                deactivateBar();
+            }).start());
+
+            uploadDocumentButton.setOnClickListener(view1 -> new Thread(() -> {
+                hideKeyboard();
+                activateBar();
+                addDocument(credentials, signUpRegistry);
+                deactivateBar();
+            }).start());
+
+            getDocumentsButton.setOnClickListener(view1 -> {
+                try {
+                    String documents = signUpRegistry.getHashList(credentials.getAddress()).
+                            sendAsync().get(3, TimeUnit.MINUTES);
+                    AlertDialog alertDialog = new AlertDialog.Builder(this)
+                            .setTitle("Uploaded documents")
+                            .setMessage(documents)
+                            .setNegativeButton("Close", (dialog, which) -> dialog.dismiss())
+                            .create();
+                    alertDialog.show();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+
+            builder.setView(transactionView);
+            builder.show();
+
+        } else offChainErrorDialog();
+    }
+
+    /**
+     * Registers the user on the contract
+     *
+     * @param credentials: private key of the user
+     * @param signUpRegistry: smart contract used
+     */
+    private void registerUser(Credentials credentials, SignUpRegistry signUpRegistry) {
+        TransactionReceipt transactionReceipt = null;
+        boolean userAlreadyRegistered = false;
+        try {
+            userAlreadyRegistered = signUpRegistry.isExist(credentials.getAddress()).sendAsync().get(2, TimeUnit.MINUTES);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
+        if (userAlreadyRegistered) {
+            toastAsync("You are already subscribed to this service");
+            deactivateBar();
+        } else {
+            try {
+                transactionReceipt = signUpRegistry.addUser(credentials.getAddress(), false).sendAsync().get(2, TimeUnit.MINUTES);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if (transactionReceipt != null) {
+                toastAsync("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+                System.out.println("Transaction hash: " + transactionReceipt.getTransactionHash());
+                System.out.println("Successful transaction: gas used " + transactionReceipt.getGasUsed());
+            }
+        }
+    }
+
+    /**
+     * Lets the user to pick a document, then proceeds to hash it and to upload it
+     *
+     * @param credentials: private key of the user
+     * @param signUpRegistry: smart contract used
+     */
+    private void addDocument(Credentials credentials, SignUpRegistry signUpRegistry) {
+        Intent chooseFile;
+        Intent intent;
+        chooseFile = new Intent(Intent.ACTION_GET_CONTENT);
+        chooseFile.addCategory(Intent.CATEGORY_OPENABLE);
+        chooseFile.setType("text/plain");
+        intent = Intent.createChooser(chooseFile, "Choose a file");
+        startActivityForResult(intent, 1000);
+        synchronized (sharedLock) {
+            try {
+                sharedLock.wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        // Change this to UTF-16 if needed
+        md.update(fileToUpload.toString().getBytes(StandardCharsets.UTF_8));
+        byte[] digest = md.digest();
+
+        String hex = "Qm" + String.format("%064x", new BigInteger(1, digest));
+
+        boolean documentAlreadyUploaded = false;
+        try {
+            documentAlreadyUploaded = signUpRegistry.existHash(credentials.getAddress(), hex).sendAsync().get(2, TimeUnit.MINUTES);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
+        if (documentAlreadyUploaded) {
+            toastAsync("You already uploaded that document");
+            deactivateBar();
+        } else {
+            TransactionReceipt transactionReceipt = null;
+            try {
+                transactionReceipt = signUpRegistry.addDocument(credentials.getAddress(),
+                        hex, "my_eSK").sendAsync().get(3, TimeUnit.MINUTES);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if (transactionReceipt != null) {
+                toastAsync("Document successfully uploaded!");
+                Log.d("addDocument", "Successful transaction: gas used " + transactionReceipt.getGasUsed());
+                Log.d("addDocument","Transaction hash: " + transactionReceipt.getTransactionHash());
+            } else {
+                toastAsync("Something went wrong. Maybe not enough gas?");
+            }
+        }
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == ACTIVITY_CHOOSE_FILE) {
+            Uri uri = data.getData();
+            String path = uri.getPath();
+            fileToUpload = new File(path);
+            Log.d("File acquired:", fileToUpload.toString());
+            synchronized (sharedLock) {
+                sharedLock.notify();
+            }
+        }
+    }
+
+    /**
+     * Deletes a given wallet
+     *
+     * @param wallet: the wallet to delete
+     */
+    public void deleteWallet(final String wallet) {
         AlertDialog alertDialog = new AlertDialog.Builder(this)
-                .setTitle("Error")
-                .setMessage("Connect to the blockchain first")
+                .setTitle("Delete Wallet")
+                .setMessage("Do you want to delete this wallet from the storage?")
+                .setPositiveButton("Yes", (dialog, which) -> {
+                    File file = new File(sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
+                            "/" + wallet);
+                    if (file.exists() && file.delete()) {
+                        toastAsync("Wallet deleted");
+                    } else {
+                        System.err.println(
+                                "I cannot find '" + file + "' ('" + file.getAbsolutePath() + "')");
+                    }
+                    walletList.remove(wallet);
+                    listAdapter.notifyDataSetChanged();
+                })
+                .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
                 .create();
         alertDialog.show();
     }
 
     /**
-     * Compute the ether balance of a given address
-     *
-     * @param address: the given address
-     * @return the ether balance
-     */
-    public String getBalance(String address) {
-        // send asynchronous requests to get balance
-        EthGetBalance ethGetBalance = null;
-        try {
-            ethGetBalance = web3j
-                    .ethGetBalance(address, DefaultBlockParameterName.LATEST)
-                    .sendAsync()
-                    .get();
-        } catch (Exception e) {
-            toastAsync(e.getMessage());
-        }
-        BigDecimal etherValue = Convert.fromWei(ethGetBalance.getBalance().toString(), Convert.Unit.ETHER);
-        return etherValue.toString();
-    }
-
-    /**
-     * List all the wallets on the device
+     * Lists all the wallets on the device
      *
      */
     public void refreshList() {
@@ -780,7 +781,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Display messages and errors, mainly used for testing purposes
+     * Displays messages and errors, mainly used for testing purposes
      *
      */
     public void toastAsync(String message) {
@@ -788,7 +789,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Show the progress bar
+     * Shows the progress bar
      *
      */
     public void activateBar() {
@@ -796,7 +797,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Hide the progress bar
+     * Hides the progress bar
      *
      */
     public void deactivateBar() {
@@ -804,7 +805,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Setup Security provider that corrects some issues with the BouncyCastle library
+     * Setups Security provider that corrects some issues with the BouncyCastle library
      *
      */
     private void setupBouncyCastle() {
@@ -826,7 +827,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Hide the digital keyboard
+     * Hides the digital keyboard
      *
      */
     private void hideKeyboard() {
@@ -872,7 +873,7 @@ public class MainActivity extends AppCompatActivity {
             final Button uploadDocument = itemView.findViewById(R.id.uploadDocumentBtn);
             uploadDocument.setOnClickListener(view -> {
                 try {
-                    smartContractCall(walletTV.getText().toString());
+                    smartContractCallDialog(walletTV.getText().toString());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
