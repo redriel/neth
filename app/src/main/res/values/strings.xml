@@ -46,4 +46,5 @@
     <string name="files">Files</string>
     <string name="register">register your account</string>
     <string name="uploaded_documents">List of uploaded documents</string>
+    <string name="next">Next</string>
 </resources>

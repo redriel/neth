@@ -2,6 +2,7 @@ package com.blinc.neth;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.text.method.KeyListener;
 import android.util.Log;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.TextView;
@@ -35,10 +36,13 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.IntStream;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -193,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Show a dialog with the mnemonic passphrase
-     * @param mnemonicPassphrase: the mnemonic passphrase usd to recover a wallet
+     * @param mnemonicPassphrase: the mnemonic passphrase used to recover a wallet
      */
     private void mnemonicPassphraseDialog(String mnemonicPassphrase) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -217,10 +221,17 @@ public class MainActivity extends AppCompatActivity {
 
             for (int i = 0; i < 12; i++) {
                 array[i].setText(arr[i]);
+                //KeyListener mKeyListener = array[i].getKeyListener();
+                array[i].setKeyListener(null);
             }
             builder.setView(mnemonicView);
             final AlertDialog dialog = builder.show();
-            okButton.setOnClickListener(view1 -> dialog.dismiss());
+            dialog.setCanceledOnTouchOutside(false);
+
+            okButton.setOnClickListener(view1 -> {
+                dialog.dismiss();
+                checkPassphraseDialog(mnemonicPassphrase);
+            });
 
             copyButton.setOnClickListener(view1 -> {
                 ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
@@ -228,6 +239,79 @@ public class MainActivity extends AppCompatActivity {
                 clipboard.setPrimaryClip(clip);
                 toastAsync("Mnemonic passphrase copied to clipboard.");
             });
+    }
+
+    private void checkPassphraseDialog(String mnemonicPassphrase){
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View mnemonicView = getLayoutInflater().inflate(R.layout.mnemonic_phrase, null);
+        EditText word1 = mnemonicView.findViewById(R.id.word1);
+        EditText word2 = mnemonicView.findViewById(R.id.word2);
+        EditText word3 = mnemonicView.findViewById(R.id.word3);
+        EditText word4 = mnemonicView.findViewById(R.id.word4);
+        EditText word5 = mnemonicView.findViewById(R.id.word5);
+        EditText word6 = mnemonicView.findViewById(R.id.word6);
+        EditText word7 = mnemonicView.findViewById(R.id.word7);
+        EditText word8 = mnemonicView.findViewById(R.id.word8);
+        EditText word9 = mnemonicView.findViewById(R.id.word9);
+        EditText word10 = mnemonicView.findViewById(R.id.word10);
+        EditText word11 = mnemonicView.findViewById(R.id.word11);
+        EditText word12 = mnemonicView.findViewById(R.id.word12);
+
+        EditText[] array = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
+        Button okButton = mnemonicView.findViewById(R.id.okButton);
+        Button copyButton = mnemonicView.findViewById(R.id.copyButton);
+        okButton.setText(getString(R.string.confirm));
+        copyButton.setVisibility(View.GONE);
+
+        String[] arr = mnemonicPassphrase.split(" ");
+
+        int[] excludedNumbers = new int[4];
+
+        for (int i = 0; i < 4; i++) {
+            excludedNumbers[i] = getRandomNumberInRange(0, 11);
+        }
+
+        boolean flag = true;
+
+        for (int i = 0; i < 12; i++) {
+            for(int j = 0; j < 4; j++){
+                if(excludedNumbers[j] == i)
+                    flag = false;
+            }
+            if(flag) {
+                array[i].setText(arr[i]);
+                array[i].setEnabled(false);
+            }
+            flag = true;
+        }
+
+        builder.setView(mnemonicView);
+        final AlertDialog dialog = builder.show();
+        dialog.setCanceledOnTouchOutside(false);
+        okButton.setOnClickListener(view1 -> {
+
+            String mnemonic = word1.getText().toString() + " " + word2.getText().toString() + " " + word3.getText().toString() + " " +
+                    word4.getText().toString() + " " + word5.getText().toString() + " " + word6.getText().toString() + " " +
+                    word7.getText().toString() + " " + word8.getText().toString() + " " + word9.getText().toString() + " " +
+                    word10.getText().toString() + " " + word11.getText().toString() + " " + word12.getText().toString();
+
+            if(mnemonic.equals(mnemonicPassphrase)) {
+                dialog.dismiss();
+            }
+            else {
+                toastAsync("Wrong passphrase. Please retry");
+            }
+        });
+    }
+
+    private static int getRandomNumberInRange(int min, int max) {
+
+        if (min >= max) {
+            throw new IllegalArgumentException("max must be greater than min");
+        }
+
+        Random r = new Random();
+        return r.nextInt((max - min) + 1) + min;
     }
 
     /**
@@ -614,7 +698,6 @@ public class MainActivity extends AppCompatActivity {
             EditText insertValue = transactionView.findViewById(R.id.ethBalanceET);
             Button pasteButton = transactionView.findViewById(R.id.pasteButton);
             Button confirmButton = transactionView.findViewById(R.id.confirmBtn);
-            Button cancelButton = transactionView.findViewById(R.id.cancelBtn);
 
             builder.setView(transactionView);
             final AlertDialog dialog = builder.show();
@@ -628,7 +711,6 @@ public class MainActivity extends AppCompatActivity {
                 sendTransaction(wallet, insertAddress.getText().toString(), insertValue.getText().toString());
                 dialog.dismiss();
             });
-            cancelButton.setOnClickListener(view1 -> dialog.dismiss());
         } else offChainErrorDialog();
     }
 
