@@ -60,7 +60,7 @@
         app:layout_constraintTop_toBottomOf="@+id/insertValueTV" />
 
     <Button
-        android:id="@+id/pasteButton"
+        android:id="@+id/pasteBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"

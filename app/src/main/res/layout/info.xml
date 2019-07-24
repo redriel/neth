@@ -28,7 +28,7 @@
         android:inputType="textPersonName"
         android:text=""
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/copyBtn"
+        app:layout_constraintEnd_toStartOf="@+id/copyPassphraseBtn"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/insertAddressTV"
         app:layout_constraintTop_toTopOf="parent" />
@@ -57,7 +57,7 @@
         app:layout_constraintTop_toBottomOf="@+id/AddressET" />
 
     <Button
-        android:id="@+id/copyBtn"
+        android:id="@+id/copyPassphraseBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"

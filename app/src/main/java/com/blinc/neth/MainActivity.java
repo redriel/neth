@@ -1,16 +1,29 @@
 package com.blinc.neth;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
-import android.text.method.KeyListener;
+import android.os.Bundle;
+import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.TextView;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
 import org.web3j.crypto.CipherException;
 import org.web3j.crypto.Credentials;
 import org.web3j.crypto.ECKeyPair;
@@ -36,28 +49,11 @@ import java.security.NoSuchAlgorithmException;
 import java.security.Provider;
 import java.security.Security;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.IntStream;
-
-import android.content.ClipData;
-import android.content.ClipboardManager;
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.os.Bundle;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatActivity;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ListView;
 
 import static org.web3j.crypto.Hash.sha256;
 
@@ -74,7 +70,7 @@ import static org.web3j.crypto.Hash.sha256;
  * - list all the hash document the user uploaded
  *
  * @author Gabriele Lavorato
- * @version 0.2.1
+ * @version 0.4.1
  */
 
 public class MainActivity extends AppCompatActivity {
@@ -89,25 +85,38 @@ public class MainActivity extends AppCompatActivity {
     public static final String infuraEndpoint = "https://rinkeby.infura.io/v3/0d1f2e6517af42d3aa3f1706f96b913e";
     public static final String smartContractAddress = "0x81eB3DA8e7CC5519386BC50e70a8AaCFd935fFC1";
 
-    //Path of selected files to upload
-    private ArrayList<String> docPaths = new ArrayList<>();
     final int ACTIVITY_CHOOSE_FILE = 1000;
-    private File filetoHash;
 
     public static final Object sharedLock = new Object();
-
     public ListView listView;
     public ArrayList<String> walletList;
     public WalletAdapter listAdapter;
+    public HashMap<String, Credentials> accounts = new HashMap<>();
+
+    private static SharedPreferences sharedPreferences;
+    private File fileToHash;
     private String password;
     private Web3j web3j;
     private File walletDirectory;
     private Button connectButton;
-    private static SharedPreferences sharedPreferences;
     private boolean connection;
     private ProgressBar progressBar;
     private Credentials credentials = null;
-    HashMap<String, Credentials> accounts = new HashMap<>();
+
+    /**
+     * Compute a random value in a given range
+     *
+     * @param min: the lower bound
+     * @param max: the upper bound
+     * @return the random value
+     */
+    private static int getRandomNumberInRange(int min, int max) {
+        if (min >= max) {
+            throw new IllegalArgumentException("max must be greater than min");
+        }
+        Random r = new Random();
+        return r.nextInt((max - min) + 1) + min;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -122,13 +131,13 @@ public class MainActivity extends AppCompatActivity {
         View listHeader = View.inflate(this, R.layout.activity_main_header, null);
         listView = findViewById(R.id.listView);
         listView.addHeaderView(listHeader);
-        connectButton = findViewById(R.id.btnConnect);
-        Button recoveryButton = findViewById(R.id.btnCloud);
+        connectButton = findViewById(R.id.connectBtn);
+        Button recoveryButton = findViewById(R.id.recoverWalletBtn);
         recoveryButton.setOnClickListener(view -> mnemonicRecovery());
         progressBar = findViewById(R.id.progressbar);
         progressBar.setVisibility(View.INVISIBLE);
 
-        listAdapter = new WalletAdapter(MainActivity.this, R.id.walletAlias);
+        listAdapter = new WalletAdapter(MainActivity.this, R.id.walletAliasTV);
         listView.setAdapter(listAdapter);
 
         String walletPath = getFilesDir().getAbsolutePath();
@@ -139,6 +148,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Establish connection to the Rinkeby testnet via Infura endpoint
+     *
      * @param view: observed view
      */
     public void connectToEthNetwork(View view) {
@@ -160,19 +170,24 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Show a dialog to create a wallet
+     *
      * @param view: the view
      */
-    public void createWalletDialog(View view){
+    public void createWalletDialog(View view) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View passwordView = getLayoutInflater().inflate(R.layout.password, null);
-        EditText passwordET = passwordView.findViewById(R.id.etPassword);
-        Button insertPassword = passwordView.findViewById(R.id.insertPassword);
+        View passwordView = getLayoutInflater().inflate(R.layout.set_password, null);
+        EditText passwordET = passwordView.findViewById(R.id.passwordET);
+        Button insertPassword = passwordView.findViewById(R.id.insertPasswordBtn);
         builder.setView(passwordView);
         final AlertDialog dialog = builder.show();
 
         insertPassword.setOnClickListener(view1 -> {
             hideKeyboard();
             password = passwordET.getText().toString();
+            if (TextUtils.isEmpty(password) || password.length() < 4) {
+                toastAsync("Your password must have 4 or more characters");
+                return;
+            }
             createWallet(password);
             dialog.dismiss();
         });
@@ -180,6 +195,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Create a wallet and stores it on the device
+     *
      * @param password: the entered password
      */
     public void createWallet(String password) {
@@ -197,53 +213,58 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Show a dialog with the mnemonic passphrase
+     *
      * @param mnemonicPassphrase: the mnemonic passphrase used to recover a wallet
      */
     private void mnemonicPassphraseDialog(String mnemonicPassphrase) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            View mnemonicView = getLayoutInflater().inflate(R.layout.mnemonic_phrase, null);
-            EditText word1 = mnemonicView.findViewById(R.id.word1);
-            EditText word2 = mnemonicView.findViewById(R.id.word2);
-            EditText word3 = mnemonicView.findViewById(R.id.word3);
-            EditText word4 = mnemonicView.findViewById(R.id.word4);
-            EditText word5 = mnemonicView.findViewById(R.id.word5);
-            EditText word6 = mnemonicView.findViewById(R.id.word6);
-            EditText word7 = mnemonicView.findViewById(R.id.word7);
-            EditText word8 = mnemonicView.findViewById(R.id.word8);
-            EditText word9 = mnemonicView.findViewById(R.id.word9);
-            EditText word10 = mnemonicView.findViewById(R.id.word10);
-            EditText word11 = mnemonicView.findViewById(R.id.word11);
-            EditText word12 = mnemonicView.findViewById(R.id.word12);
-            EditText[] array = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
-            Button okButton = mnemonicView.findViewById(R.id.okButton);
-            Button copyButton = mnemonicView.findViewById(R.id.copyButton);
-            String[] arr = mnemonicPassphrase.split(" ");
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View mnemonicView = getLayoutInflater().inflate(R.layout.passphrase, null);
+        EditText word1 = mnemonicView.findViewById(R.id.word1);
+        EditText word2 = mnemonicView.findViewById(R.id.word2);
+        EditText word3 = mnemonicView.findViewById(R.id.word3);
+        EditText word4 = mnemonicView.findViewById(R.id.word4);
+        EditText word5 = mnemonicView.findViewById(R.id.word5);
+        EditText word6 = mnemonicView.findViewById(R.id.word6);
+        EditText word7 = mnemonicView.findViewById(R.id.word7);
+        EditText word8 = mnemonicView.findViewById(R.id.word8);
+        EditText word9 = mnemonicView.findViewById(R.id.word9);
+        EditText word10 = mnemonicView.findViewById(R.id.word10);
+        EditText word11 = mnemonicView.findViewById(R.id.word11);
+        EditText word12 = mnemonicView.findViewById(R.id.word12);
+        EditText[] array = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
+        Button okButton = mnemonicView.findViewById(R.id.nextBtn);
+        Button copyButton = mnemonicView.findViewById(R.id.copyPassphraseBtn);
+        String[] arr = mnemonicPassphrase.split(" ");
 
-            for (int i = 0; i < 12; i++) {
-                array[i].setText(arr[i]);
-                //KeyListener mKeyListener = array[i].getKeyListener();
-                array[i].setKeyListener(null);
-            }
-            builder.setView(mnemonicView);
-            final AlertDialog dialog = builder.show();
-            dialog.setCanceledOnTouchOutside(false);
+        for (int i = 0; i < 12; i++) {
+            array[i].setText(arr[i]);
+            array[i].setKeyListener(null);
+        }
+        builder.setView(mnemonicView);
+        final AlertDialog dialog = builder.show();
+        dialog.setCanceledOnTouchOutside(false);
 
-            okButton.setOnClickListener(view1 -> {
-                dialog.dismiss();
-                checkPassphraseDialog(mnemonicPassphrase);
-            });
+        okButton.setOnClickListener(view1 -> {
+            dialog.dismiss();
+            confirmPassphraseDialog(mnemonicPassphrase);
+        });
 
-            copyButton.setOnClickListener(view1 -> {
-                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                ClipData clip = ClipData.newPlainText("", mnemonicPassphrase);
-                clipboard.setPrimaryClip(clip);
-                toastAsync("Mnemonic passphrase copied to clipboard.");
-            });
+        copyButton.setOnClickListener(view1 -> {
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText("", mnemonicPassphrase);
+            clipboard.setPrimaryClip(clip);
+            toastAsync("Mnemonic passphrase copied to clipboard.");
+        });
     }
 
-    private void checkPassphraseDialog(String mnemonicPassphrase){
+    /**
+     * Show a dialog to confirm the user knowledge of the passphrase
+     *
+     * @param mnemonicPassphrase: the passphrase to check
+     */
+    private void confirmPassphraseDialog(String mnemonicPassphrase) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View mnemonicView = getLayoutInflater().inflate(R.layout.mnemonic_phrase, null);
+        View mnemonicView = getLayoutInflater().inflate(R.layout.passphrase, null);
         EditText word1 = mnemonicView.findViewById(R.id.word1);
         EditText word2 = mnemonicView.findViewById(R.id.word2);
         EditText word3 = mnemonicView.findViewById(R.id.word3);
@@ -258,8 +279,8 @@ public class MainActivity extends AppCompatActivity {
         EditText word12 = mnemonicView.findViewById(R.id.word12);
 
         EditText[] array = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
-        Button okButton = mnemonicView.findViewById(R.id.okButton);
-        Button copyButton = mnemonicView.findViewById(R.id.copyButton);
+        Button okButton = mnemonicView.findViewById(R.id.nextBtn);
+        Button copyButton = mnemonicView.findViewById(R.id.copyPassphraseBtn);
         okButton.setText(getString(R.string.confirm));
         copyButton.setVisibility(View.GONE);
 
@@ -274,11 +295,11 @@ public class MainActivity extends AppCompatActivity {
         boolean flag = true;
 
         for (int i = 0; i < 12; i++) {
-            for(int j = 0; j < 4; j++){
-                if(excludedNumbers[j] == i)
+            for (int j = 0; j < 4; j++) {
+                if (excludedNumbers[j] == i)
                     flag = false;
             }
-            if(flag) {
+            if (flag) {
                 array[i].setText(arr[i]);
                 array[i].setEnabled(false);
             }
@@ -295,33 +316,23 @@ public class MainActivity extends AppCompatActivity {
                     word7.getText().toString() + " " + word8.getText().toString() + " " + word9.getText().toString() + " " +
                     word10.getText().toString() + " " + word11.getText().toString() + " " + word12.getText().toString();
 
-            if(mnemonic.equals(mnemonicPassphrase)) {
+            if (mnemonic.equals(mnemonicPassphrase)) {
                 dialog.dismiss();
-            }
-            else {
+            } else {
                 toastAsync("Wrong passphrase. Please retry");
             }
         });
     }
 
-    private static int getRandomNumberInRange(int min, int max) {
-
-        if (min >= max) {
-            throw new IllegalArgumentException("max must be greater than min");
-        }
-
-        Random r = new Random();
-        return r.nextInt((max - min) + 1) + min;
-    }
-
     /**
      * Unlock the wallet loading its credentials
+     *
      * @param wallet: the wallet ot unlock
      */
     private void unlockWalletDialog(String wallet) {
         /*
         It's safe to assume that a Credentials object is not null only when it's correctly initialized.
-        This occurs when the password used is correct. Therefore a non null Credentials is successfully unlocked.
+        This occurs when the set_password used is correct. Therefore a non null Credentials is successfully unlocked.
          */
         if (accounts.get(wallet) != null) {
             toastAsync("Already unlocked");
@@ -329,24 +340,23 @@ public class MainActivity extends AppCompatActivity {
         }
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View passwordView = getLayoutInflater().inflate(R.layout.unlock_wallet, null);
-        EditText passwordET = passwordView.findViewById(R.id.etPassword);
-        Button insertPassword = passwordView.findViewById(R.id.insertPassword);
+        EditText passwordET = passwordView.findViewById(R.id.passwordET);
+        Button insertPassword = passwordView.findViewById(R.id.insertPasswordBtn);
 
         builder.setView(passwordView);
         final AlertDialog dialog = builder.show();
 
-
-        //If the loadCredentials return a non null object we can assume the input password is correct.
+        //If the loadCredentials return a non null object we can assume the input set_password is correct.
         insertPassword.setOnClickListener(view1 -> {
             password = passwordET.getText().toString();
             credentials = null;
             try {
                 credentials = WalletUtils.loadCredentials(password, sharedPreferences.getString(WALLET_DIRECTORY_KEY, "") +
-                                "/" + wallet);
+                        "/" + wallet);
             } catch (IOException e) {
-            e.printStackTrace();
+                e.printStackTrace();
             } catch (CipherException e) {
-            e.printStackTrace();
+                e.printStackTrace();
             }
             if (credentials != null) {
                 toastAsync("Unlocked!");
@@ -362,8 +372,9 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Recover an HD wallet from a 12-words mnemonic phrase
+     *
      */
-    private void mnemonicRecovery(){
+    private void mnemonicRecovery() {
         //Here we set all the editText to receive the user passphrase
         //Not the most elegant solution but it gets the job done
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -381,15 +392,15 @@ public class MainActivity extends AppCompatActivity {
         EditText word11 = recoveryView.findViewById(R.id.word11);
         EditText word12 = recoveryView.findViewById(R.id.word12);
         EditText[] array = {word1, word2, word3, word4, word5, word6, word7, word8, word9, word10, word11, word12};
-        Button pasteButton = recoveryView.findViewById(R.id.pasteButton);
-        Button recoveryButton = recoveryView.findViewById(R.id.recoveryButton);
+        Button pasteButton = recoveryView.findViewById(R.id.pasteBtn);
+        Button recoveryButton = recoveryView.findViewById(R.id.recoveryBtn);
 
         //Here we can paste automatically the passphrase in the form
         pasteButton.setOnClickListener(view1 -> {
             ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
             String mnemonic = clipboard.getText().toString();
             String[] arr = mnemonic.split(" ");
-            for(int i = 0; i < 12; i++){
+            for (int i = 0; i < 12; i++) {
                 array[i].setText(arr[i]);
             }
         });
@@ -420,9 +431,10 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Send ether from a wallet to another
-     * @param wallet: the wallet of the sender
+     *
+     * @param wallet:  the wallet of the sender
      * @param address: the address of the receiver
-     * @param value: the amount of ether sent
+     * @param value:   the amount of ether sent
      */
     public void sendTransaction(String wallet, String address, String value) {
         activateBar();
@@ -433,9 +445,9 @@ public class MainActivity extends AppCompatActivity {
                 An unlocked wallet is inevitably not null.
                 */
                 toastAsync("Transaction started!");
-               TransactionReceipt receipt = Transfer.sendFunds(web3j, accounts.get(wallet), address,
+                TransactionReceipt receipt = Transfer.sendFunds(web3j, accounts.get(wallet), address,
                         new BigDecimal(value), Convert.Unit.ETHER).sendAsync().get();
-               toastAsync("Transaction complete: " + receipt.getTransactionHash());
+                toastAsync("Transaction complete: " + receipt.getTransactionHash());
             } catch (Exception e) {
                 toastAsync(e.getMessage());
             }
@@ -445,19 +457,20 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Call the SignUpRegistry contract functions
+     *
      * @param wallet: the wallet calling the contract functions
      */
-    public void smartContractCall(String wallet)  {
-        if(!checkUnlocked(wallet)) {
+    public void smartContractCall(String wallet) {
+        if (!checkUnlocked(wallet)) {
             return;
         }
-        if(connection) {
+        if (connection) {
             credentials = accounts.get(wallet);
             SignUpRegistry signUpRegistry = SignUpRegistry.load(smartContractAddress, web3j, credentials, gasPrice, gasLimit);
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            View transactionView = getLayoutInflater().inflate(R.layout.upload, null);
+            View transactionView = getLayoutInflater().inflate(R.layout.contracts, null);
             Button signUpButton = transactionView.findViewById(R.id.registerBtn);
-            Button uploadButton = transactionView.findViewById(R.id.uploadBtn);
+            Button uploadButton = transactionView.findViewById(R.id.uploadDocBtn);
             Button getDocumentsButton = transactionView.findViewById(R.id.docListBtn);
 
             /*
@@ -481,8 +494,7 @@ public class MainActivity extends AppCompatActivity {
                 if (b) {
                     toastAsync("You are already subscribed to this service");
                     deactivateBar();
-                }
-                else{
+                } else {
                     try {
                         transactionReceipt = signUpRegistry.addUser(credentials.getAddress(), false).sendAsync().get(2, TimeUnit.MINUTES);
                     } catch (Exception e) {
@@ -528,7 +540,7 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 // Change this to UTF-16 if needed
-                md.update(filetoHash.toString().getBytes(StandardCharsets.UTF_8));
+                md.update(fileToHash.toString().getBytes(StandardCharsets.UTF_8));
                 byte[] digest = md.digest();
 
                 String hex = "Qm" + String.format("%064x", new BigInteger(1, digest));
@@ -546,8 +558,7 @@ public class MainActivity extends AppCompatActivity {
                 if (b) {
                     toastAsync("You already uploaded that document");
                     deactivateBar();
-                }
-                else {
+                } else {
                     TransactionReceipt transactionReceipt = null;
                     try {
                         transactionReceipt = signUpRegistry.addDocument(credentials.getAddress(),
@@ -559,8 +570,7 @@ public class MainActivity extends AppCompatActivity {
                         toastAsync("Successful transaction: gas used " + transactionReceipt.getGasUsed());
                         System.out.println("Successful transaction: gas used " + transactionReceipt.getGasUsed());
                         System.out.println("Transaction hash: " + transactionReceipt.getTransactionHash());
-                    }
-                    else {
+                    } else {
                         toastAsync("Something went wrong. Maybe not enough gas?");
                     }
                     deactivateBar();
@@ -581,15 +591,15 @@ public class MainActivity extends AppCompatActivity {
             That's not the optimal solution, but the best we got for now.
             The string is received and simply displayed by the app.
             */
-            getDocumentsButton.setOnClickListener(view1 ->{
+            getDocumentsButton.setOnClickListener(view1 -> {
                 try {
                     String documents = signUpRegistry.getHashList(credentials.getAddress()).sendAsync().get(3, TimeUnit.MINUTES);
                     AlertDialog alertDialog = new AlertDialog.Builder(this)
-                        .setTitle("Uploaded documents")
-                        .setMessage(documents)
-                        .setNegativeButton("Close", (dialog, which) -> dialog.dismiss())
-                        .create();
-                alertDialog.show();
+                            .setTitle("Uploaded documents")
+                            .setMessage(documents)
+                            .setNegativeButton("Close", (dialog, which) -> dialog.dismiss())
+                            .create();
+                    alertDialog.show();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -600,11 +610,11 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(requestCode == ACTIVITY_CHOOSE_FILE) {
+        if (requestCode == ACTIVITY_CHOOSE_FILE) {
             Uri uri = data.getData();
             String path = uri.getPath();
-            filetoHash = new File(path);
-            Log.d("File acquired:", filetoHash.toString());
+            fileToHash = new File(path);
+            Log.d("File acquired:", fileToHash.toString());
             synchronized (sharedLock) {
                 sharedLock.notify();
             }
@@ -613,6 +623,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Delete a given wallet
+     *
      * @param wallet: the wallet to delete
      */
     public void deleteWallet(final String wallet) {
@@ -638,10 +649,11 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Display address and eth balance of a given wallet.
+     *
      * @param wallet: the wallet to display info
      */
-    public void infoDialog(final String wallet)  {
-        if(!checkUnlocked(wallet)) {
+    public void infoDialog(final String wallet) {
+        if (!checkUnlocked(wallet)) {
             return;
         }
         if (connection) {
@@ -653,7 +665,7 @@ public class MainActivity extends AppCompatActivity {
 
             EditText showBalance = transactionView.findViewById(R.id.ethBalanceET);
             showBalance.setText(getBalance(credentials.getAddress()));
-            Button copyButton = transactionView.findViewById(R.id.copyBtn);
+            Button copyButton = transactionView.findViewById(R.id.copyPassphraseBtn);
             copyButton.setOnClickListener(view1 -> {
                 ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
                 ClipData clip = ClipData.newPlainText("", showAddress.getText());
@@ -667,11 +679,12 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Check if a given wallet is unlocked
+     *
      * @param wallet: the wallet to check
      * @return true if unlocked, false otherwise
      */
     public boolean checkUnlocked(String wallet) {
-        if(accounts.get(wallet) != null) {
+        if (accounts.get(wallet) != null) {
             return true;
         } else {
             AlertDialog alertDialog = new AlertDialog.Builder(this)
@@ -685,18 +698,19 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Show a dialog to acquire transaction info.
+     *
      * @param wallet: the sender of the transaction
      */
     public void transactionDialog(String wallet) {
-        if(!checkUnlocked(wallet)) {
+        if (!checkUnlocked(wallet)) {
             return;
         }
-        if(connection){
+        if (connection) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             View transactionView = getLayoutInflater().inflate(R.layout.transaction, null);
             EditText insertAddress = transactionView.findViewById(R.id.AddressET);
             EditText insertValue = transactionView.findViewById(R.id.ethBalanceET);
-            Button pasteButton = transactionView.findViewById(R.id.pasteButton);
+            Button pasteButton = transactionView.findViewById(R.id.pasteBtn);
             Button confirmButton = transactionView.findViewById(R.id.confirmBtn);
 
             builder.setView(transactionView);
@@ -716,6 +730,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Check the state of the connection to the blockchain
+     *
      */
     public void offChainErrorDialog() {
         AlertDialog alertDialog = new AlertDialog.Builder(this)
@@ -726,59 +741,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Inner class to display wallets on the device
-     */
-    public class WalletAdapter extends ArrayAdapter<String> {
-
-        WalletAdapter(Context context, int textView) {
-            super(context, textView);
-        }
-
-        @Override
-        public int getCount() {
-            return walletList.size();
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            View itemView = LayoutInflater.from(parent.getContext()).
-                    inflate(R.layout.list_items, parent, false);
-
-            final TextView walletTV = itemView.findViewById(R.id.walletAlias);
-            walletTV.setText(walletList.get(position));
-
-            final Button lock = itemView.findViewById(R.id.unlockButton);
-            lock.setOnClickListener(view -> unlockWalletDialog(walletTV.getText().toString()));
-
-            final Button address = itemView.findViewById(R.id.infoButton);
-            address.setOnClickListener(view -> infoDialog(walletTV.getText().toString()));
-
-            final Button transaction = itemView.findViewById(R.id.transactionButton);
-            transaction.setOnClickListener(view -> transactionDialog(walletTV.getText().toString()));
-
-            final Button uploadDocument = itemView.findViewById(R.id.uploadDocumentButton);
-            uploadDocument.setOnClickListener(view -> {
-                try {
-                    smartContractCall(walletTV.getText().toString());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
-
-            final Button deleteButton = itemView.findViewById(R.id.deleteButton);
-            deleteButton.setOnClickListener(view -> deleteWallet(walletTV.getText().toString()));
-
-            return itemView;
-        }
-
-        @Override
-        public String getItem(int position) {
-            return walletList.get(position);
-        }
-    }
-
-    /**
      * Compute the ether balance of a given address
+     *
      * @param address: the given address
      * @return the ether balance
      */
@@ -799,6 +763,7 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * List all the wallets on the device
+     *
      */
     public void refreshList() {
         File folder = new File(sharedPreferences.getString(WALLET_DIRECTORY_KEY, ""));
@@ -816,21 +781,31 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Display messages and errors, mainly used for testing purposes
+     *
      */
     public void toastAsync(String message) {
         runOnUiThread(() -> Toast.makeText(this, message, Toast.LENGTH_LONG).show());
     }
 
+    /**
+     * Show the progress bar
+     *
+     */
     public void activateBar() {
         runOnUiThread(() -> progressBar.setVisibility(View.VISIBLE));
     }
 
+    /**
+     * Hide the progress bar
+     *
+     */
     public void deactivateBar() {
         runOnUiThread(() -> progressBar.setVisibility(View.INVISIBLE));
     }
 
     /**
      * Setup Security provider that corrects some issues with the BouncyCastle library
+     *
      */
     private void setupBouncyCastle() {
         final Provider provider = Security.getProvider(BouncyCastleProvider.PROVIDER_NAME);
@@ -852,12 +827,66 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Hide the digital keyboard
+     *
      */
     private void hideKeyboard() {
         View view = this.getCurrentFocus();
         if (view != null) {
             InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
+    }
+
+    /**
+     * Inner class to display wallets on the device
+     *
+     */
+    public class WalletAdapter extends ArrayAdapter<String> {
+
+        WalletAdapter(Context context, int textView) {
+            super(context, textView);
+        }
+
+        @Override
+        public int getCount() {
+            return walletList.size();
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            View itemView = LayoutInflater.from(parent.getContext()).
+                    inflate(R.layout.list_items, parent, false);
+
+            final TextView walletTV = itemView.findViewById(R.id.walletAliasTV);
+            walletTV.setText(walletList.get(position));
+
+            final Button lock = itemView.findViewById(R.id.unlockBtn);
+            lock.setOnClickListener(view -> unlockWalletDialog(walletTV.getText().toString()));
+
+            final Button address = itemView.findViewById(R.id.infoBtn);
+            address.setOnClickListener(view -> infoDialog(walletTV.getText().toString()));
+
+            final Button transaction = itemView.findViewById(R.id.transactionBtn);
+            transaction.setOnClickListener(view -> transactionDialog(walletTV.getText().toString()));
+
+            final Button uploadDocument = itemView.findViewById(R.id.uploadDocumentBtn);
+            uploadDocument.setOnClickListener(view -> {
+                try {
+                    smartContractCall(walletTV.getText().toString());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+
+            final Button deleteButton = itemView.findViewById(R.id.deleteWalletBtn);
+            deleteButton.setOnClickListener(view -> deleteWallet(walletTV.getText().toString()));
+
+            return itemView;
+        }
+
+        @Override
+        public String getItem(int position) {
+            return walletList.get(position);
         }
     }
 

@@ -9,18 +9,18 @@
     android:background="#e1e1d0">
 
     <TextView
-        android:id="@+id/walletAlias"
+        android:id="@+id/walletAliasTV"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:textSize="20sp" />
 
     <Button
-        android:id="@+id/unlockButton"
+        android:id="@+id/unlockBtn"
         style="@style/Base.Widget.AppCompat.Button.Borderless"
         android:layout_width="35dp"
         android:layout_height="wrap_content"
-        android:layout_below="@id/walletAlias"
+        android:layout_below="@id/walletAliasTV"
         android:layout_alignParentStart="true"
         android:layout_marginTop="0dp"
         android:drawableStart="@drawable/lock"
@@ -28,51 +28,50 @@
         android:paddingEnd="0dp" />
 
     <Button
-        android:id="@+id/infoButton"
+        android:id="@+id/infoBtn"
         style="@style/Base.Widget.AppCompat.Button.Borderless"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/walletAlias"
+        android:layout_below="@id/walletAliasTV"
         android:layout_marginTop="0dp"
-        android:layout_toEndOf="@+id/unlockButton"
+        android:layout_toEndOf="@+id/unlockBtn"
         android:text="@string/info"
         android:textSize="12sp" />
 
     <Button
-        android:id="@+id/transactionButton"
+        android:id="@+id/transactionBtn"
         style="@style/Base.Widget.AppCompat.Button.Borderless"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/walletAlias"
+        android:layout_below="@+id/walletAliasTV"
         android:layout_marginStart="0dp"
         android:layout_marginTop="0dp"
-        android:layout_toEndOf="@+id/infoButton"
+        android:layout_toEndOf="@+id/infoBtn"
         android:text="@string/transaction"
         android:textSize="12sp" />
 
     <Button
-        android:id="@+id/uploadDocumentButton"
+        android:id="@+id/uploadDocumentBtn"
         style="@style/Base.Widget.AppCompat.Button.Borderless"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/walletAlias"
+        android:layout_below="@id/walletAliasTV"
         android:layout_marginStart="0dp"
         android:layout_marginTop="0dp"
-        android:layout_toEndOf="@+id/transactionButton"
+        android:layout_toEndOf="@+id/transactionBtn"
         android:text="@string/files"
         android:textSize="12sp" />
 
     <Button
-        android:id="@+id/deleteButton"
+        android:id="@+id/deleteWalletBtn"
         style="@style/Base.Widget.AppCompat.Button.Borderless"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/walletAlias"
+        android:layout_below="@id/walletAliasTV"
         android:layout_alignParentEnd="true"
-
         android:layout_marginTop="0dp"
         android:layout_marginEnd="0dp"
-        android:layout_toEndOf="@+id/uploadDocumentButton"
+        android:layout_toEndOf="@+id/uploadDocumentBtn"
         android:background="#ff6666"
         android:drawableStart="@drawable/trash_bin"
         android:paddingStart="30dp"

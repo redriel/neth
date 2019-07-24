@@ -6,7 +6,7 @@
     android:padding="5dp">
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/insertPasswordTV"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
@@ -16,7 +16,7 @@
         android:textStyle="bold" />
 
     <EditText
-        android:id="@+id/etPassword"
+        android:id="@+id/passwordET"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="5dp"
@@ -25,7 +25,7 @@
         android:inputType="textPassword" />
 
     <Button
-        android:id="@+id/insertPassword"
+        android:id="@+id/insertPasswordBtn"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"

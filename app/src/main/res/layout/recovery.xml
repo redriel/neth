@@ -7,7 +7,7 @@
     android:paddingBottom="10dp">
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/insertPasswordTV"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
@@ -53,7 +53,7 @@
         app:layout_constraintEnd_toStartOf="@+id/word4"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/word2"
-        app:layout_constraintTop_toBottomOf="@+id/textView" />
+        app:layout_constraintTop_toBottomOf="@+id/insertPasswordTV" />
 
     <EditText
         android:id="@+id/word4"
@@ -66,7 +66,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toEndOf="@+id/word3"
-        app:layout_constraintTop_toBottomOf="@+id/textView" />
+        app:layout_constraintTop_toBottomOf="@+id/insertPasswordTV" />
 
     <EditText
         android:id="@+id/word5"
@@ -173,25 +173,25 @@
         app:layout_constraintTop_toBottomOf="@+id/word8" />
 
     <Button
-        android:id="@+id/pasteButton"
+        android:id="@+id/pasteBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="@string/paste"
-        app:layout_constraintEnd_toStartOf="@+id/recoveryButton"
+        app:layout_constraintEnd_toStartOf="@+id/recoveryBtn"
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/word10" />
 
     <Button
-        android:id="@+id/recoveryButton"
+        android:id="@+id/recoveryBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
         android:text="@string/recoverWallet"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/pasteButton"
+        app:layout_constraintStart_toEndOf="@+id/pasteBtn"
         app:layout_constraintTop_toBottomOf="@+id/word11" />
 
 </android.support.constraint.ConstraintLayout>
