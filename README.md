@@ -26,9 +26,11 @@ Per quanto riguarda gli smart contract, la loro implementazione è stata possibi
 La possibilità di creare classi java autogenerate a partire dagli smart contract rende l'implementazione estremamente semplice e rapida, pur con i suoi limiti (ad esempio non è al momento possibile utilizzare funzioni dei contratti che restituiscono strutture dati).
 
 Il contratto implementato da Neth è SignUpRegistry che permette di eseguire le seguenti operazioni:
-- registrazione di un utente presso il contratto, abilitando le altre due operazioni
+- registrazione di un utente presso il contratto, abilitando le altre operazioni
 - caricamento di IPFS hash di file. 
 - visione degli hash di tutti i documenti precedentemente caricati
+- controllo dell'address dell'utente, per evitare che si registri più di una volta
+- controllo degli hash dei documenti caricati, al fine di evitare duplicati
 
 Al momento Neth non può interfacciarsi direttamente con IPFS (non esistono API java affidabili e le poche in circolazione sono acerbe e amatoriali) ma Infura prevede di aggiungere la virtualizzazione di nodi anche per la rete IPFS. Tale soluzione sarebbe ottimale perchè permetterebbe l'utilizzo del medesimo servizio per interfacciarsi con due sistemi diversi.
 
